@@ -1,0 +1,7 @@
+# In .gitignore at project root
+/BACKEND/node_modules/
+/BACKEND/dist/
+/BACKEND/.env
+/BACKEND/.env.local
+
+/frontend/node_modules/
