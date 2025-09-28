@@ -20,7 +20,6 @@ import {
   Snackbar,
   Alert,
   Tooltip,
-  Chip,
   TextField,
   InputAdornment,
 } from '@mui/material';
@@ -91,13 +90,17 @@ function AppointmentManagement() {
     cancelled: 0,
     completed: 0,
   });
+  const [totalStatusCounts, setTotalStatusCounts] = useState({
+    pending: 0,
+    confirmed: 0,
+    cancelled: 0,
+    completed: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingBooking, setDeletingBooking] = useState(null);
-  
-  // New state for search input
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -138,6 +141,13 @@ function AppointmentManagement() {
       completed: 0,
     };
 
+    const totalCounts = {
+      pending: 0,
+      confirmed: 0,
+      cancelled: 0,
+      completed: 0,
+    };
+
     bookingList.forEach((b) => {
       const dateStr = b.createdAt || b.updatedAt;
       if (!dateStr) return;
@@ -153,10 +163,15 @@ function AppointmentManagement() {
       if (mKey === currentMonthKey && status in currentStatus) {
         currentStatus[status] = (currentStatus[status] || 0) + 1;
       }
+
+      if (status in totalCounts) {
+        totalCounts[status]++;
+      }
     });
 
     setChartData(data);
     setCurrentMonthStatus(currentStatus);
+    setTotalStatusCounts(totalCounts);
   };
 
   const handleStatusChange = async (bookingId, newStatus) => {
@@ -193,7 +208,6 @@ function AppointmentManagement() {
     setDeletingBooking(null);
   };
 
-  // Memoized filtered bookings for better performance
   const filteredBookings = useMemo(() => {
     if (!searchTerm.trim()) return bookings;
     return bookings.filter((b) =>
@@ -218,7 +232,7 @@ function AppointmentManagement() {
           Appointment Management
         </Typography>
 
-        {/* Charts Section */}
+        {/* Charts */}
         <Box
           sx={{
             display: 'flex',
@@ -236,7 +250,6 @@ function AppointmentManagement() {
               p: 3,
               borderRadius: 2,
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              transition: 'box-shadow 0.3s ease',
               '&:hover': {
                 boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
               },
@@ -247,23 +260,16 @@ function AppointmentManagement() {
             </Typography>
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
+                <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="monthLabel" />
                   <YAxis allowDecimals={false} />
-                  <ReTooltip
-                    formatter={(value, name) =>
-                      [value, name.charAt(0).toUpperCase() + name.slice(1)]
-                    }
-                  />
-                  <Legend verticalAlign="top" wrapperStyle={{ top: 0 }} />
-                  <Bar dataKey="pending" stackId="a" fill={PIE_COLORS.pending} name="Pending" />
-                  <Bar dataKey="confirmed" stackId="a" fill={PIE_COLORS.confirmed} name="Confirmed" />
-                  <Bar dataKey="cancelled" stackId="a" fill={PIE_COLORS.cancelled} name="Cancelled" />
-                  <Bar dataKey="completed" stackId="a" fill={PIE_COLORS.completed} name="Completed" />
+                  <ReTooltip />
+                  <Legend />
+                  <Bar dataKey="pending" stackId="a" fill={PIE_COLORS.pending} />
+                  <Bar dataKey="confirmed" stackId="a" fill={PIE_COLORS.confirmed} />
+                  <Bar dataKey="cancelled" stackId="a" fill={PIE_COLORS.cancelled} />
+                  <Bar dataKey="completed" stackId="a" fill={PIE_COLORS.completed} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -280,7 +286,6 @@ function AppointmentManagement() {
               p: 3,
               borderRadius: 2,
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              transition: 'box-shadow 0.3s ease',
               '&:hover': {
                 boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
               },
@@ -318,7 +323,57 @@ function AppointmentManagement() {
           </Box>
         </Box>
 
-        {/* Search Bar */}
+        {/* Total Appointment Counts by Status as Cards */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            mb: 4,
+          }}
+        >
+          {Object.entries(totalStatusCounts).map(([status, count]) => (
+            <Paper
+              key={status}
+              elevation={3}
+              sx={{
+                flex: '1 1 200px',
+                minWidth: 180,
+                px: 2,
+                py: 2,
+                borderLeft: `6px solid ${PIE_COLORS[status]}`,
+                backgroundColor: '#fff',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                transition: 'transform 0.2s ease-in-out',
+                '&:hover': {
+                  transform: 'scale(1.02)',
+                },
+              }}
+            >
+              <Typography
+                variant="subtitle2"
+                sx={{ color: '#777', textTransform: 'uppercase', fontWeight: 500 }}
+              >
+                {status}
+              </Typography>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 'bold',
+                  color: PIE_COLORS[status],
+                  mt: 0.5,
+                  textTransform: 'capitalize',
+                }}
+              >
+                {count}
+              </Typography>
+            </Paper>
+          ))}
+        </Box>
+
+        {/* Search */}
         <Box sx={{ mb: 2, maxWidth: 400 }}>
           <TextField
             label="Search by Client Name"
@@ -337,19 +392,17 @@ function AppointmentManagement() {
           />
         </Box>
 
-        {/* Table Section */}
+        {/* Table */}
         {loading ? (
           <Typography>Loading appointments...</Typography>
         ) : error ? (
           <Alert severity="error">{error}</Alert>
         ) : filteredBookings.length === 0 ? (
-          <Alert severity="info">No appointments found{searchTerm ? ' matching your search.' : '.'}</Alert>
+          <Alert severity="info">
+            No appointments found{searchTerm ? ' matching your search.' : '.'}
+          </Alert>
         ) : (
-          <TableContainer
-            component={Paper}
-            elevation={3}
-            sx={{ borderRadius: 2, overflow: 'hidden' }}
-          >
+          <TableContainer component={Paper} elevation={3} sx={{ borderRadius: 2, overflow: 'hidden' }}>
             <Table stickyHeader>
               <TableHead sx={{ backgroundColor: '#1976d2' }}>
                 <TableRow>
@@ -370,18 +423,13 @@ function AppointmentManagement() {
                     ? `${slotId.day} ${slotId.startTime} - ${slotId.endTime}`
                     : 'N/A';
                   return (
-                    <TableRow
-                      key={_id}
-                      hover
-                      sx={{
-                        '&:hover': { backgroundColor: '#e3f2fd' },
-                      }}
-                    >
+                    <TableRow key={_id} hover sx={{ '&:hover': { backgroundColor: '#e3f2fd' } }}>
                       <TableCell>{trainerId?.name || 'N/A'}</TableCell>
                       <TableCell>{dayTime}</TableCell>
                       <TableCell>{clientName}</TableCell>
                       <TableCell>
-                        {clientContact?.phone || 'N/A'}<br />
+                        {clientContact?.phone || 'N/A'}
+                        <br />
                         {clientContact?.email || 'N/A'}
                       </TableCell>
                       <TableCell>
@@ -393,12 +441,15 @@ function AppointmentManagement() {
                         >
                           {['pending', 'confirmed', 'cancelled', 'completed'].map((stat) => (
                             <MenuItem key={stat} value={stat}>
-                              <Chip
-                                label={stat.charAt(0).toUpperCase() + stat.slice(1)}
-                                size="small"
-                                color={STATUS_COLORS[stat]}
-                                sx={{ textTransform: 'none' }}
-                              />
+                              <Typography
+                                sx={{
+                                  color: PIE_COLORS[stat],
+                                  fontWeight: '600',
+                                  textTransform: 'capitalize',
+                                }}
+                              >
+                                {stat}
+                              </Typography>
                             </MenuItem>
                           ))}
                         </Select>
@@ -418,14 +469,17 @@ function AppointmentManagement() {
           </TableContainer>
         )}
 
-        {/* Delete Booking Confirmation */}
+        {/* Delete Confirmation Dialog */}
         <Dialog open={deleteDialogOpen} onClose={handleCloseDelete}>
-          <DialogTitle>Delete Booking</DialogTitle>
+          <DialogTitle>Confirm Deletion</DialogTitle>
           <DialogContent>
-            <Typography>Are you sure you want to delete this booking?</Typography>
+            Are you sure you want to delete the booking for{' '}
+            <strong>{deletingBooking?.clientName}</strong>?
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCloseDelete}>Cancel</Button>
+            <Button onClick={handleCloseDelete} color="primary">
+              Cancel
+            </Button>
             <Button onClick={handleDeleteBooking} color="error" variant="contained">
               Delete
             </Button>
@@ -440,9 +494,9 @@ function AppointmentManagement() {
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
           <Alert
-            severity={snackbar.severity}
             onClose={() => setSnackbar({ ...snackbar, open: false })}
-            sx={{ minWidth: 300 }}
+            severity={snackbar.severity}
+            sx={{ width: '100%' }}
           >
             {snackbar.message}
           </Alert>

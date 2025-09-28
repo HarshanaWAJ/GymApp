@@ -22,6 +22,10 @@ const trainerSchema = new mongoose.Schema({
     phone: String,
     email: String,
   },
+  image: {
+    data: Buffer,
+    contentType: String, 
+  },
 }, {
   timestamps: true,
 });

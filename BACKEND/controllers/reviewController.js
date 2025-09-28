@@ -92,3 +92,12 @@ exports.getTrainerReviewsRate = async (req, res) => {
     res.status(500).json({ error: 'Server error while fetching reviews' });
   }
 };
+
+exports.getAllReviews = async (req, res) => {
+  try {
+    const reviews = await Review.find().populate('trainerId', 'name'); // Populate trainer details if needed
+    res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}

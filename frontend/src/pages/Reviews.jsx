@@ -1,21 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import api from '../api/axiosInstance'; // Adjust path as needed
+import React, { useEffect, useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import api from '../api/axiosInstance';
+import Sentiment from 'sentiment';
 
-// StarRating component for selecting rating with stars
-function StarRating({ rating, setRating }) {
-  const stars = [];
-
-  for (let i = 1; i <= 5; i++) {
-    stars.push(
+// StarRating component
+const StarRating = ({ rating, setRating }) => (
+  <div>
+    {[1, 2, 3, 4, 5].map((i) => (
       <span
         key={i}
         onClick={() => setRating(i.toString())}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') setRating(i.toString());
-        }}
-        role="button"
-        tabIndex={0}
         style={{
           cursor: 'pointer',
           color: i <= Number(rating) ? '#ffc107' : '#e4e5e9',
@@ -24,288 +18,243 @@ function StarRating({ rating, setRating }) {
           transition: 'color 0.2s',
         }}
         aria-label={`${i} Star${i > 1 ? 's' : ''}`}
-        aria-pressed={i === Number(rating)}
       >
         ★
       </span>
-    );
-  }
+    ))}
+  </div>
+);
 
-  return <div>{stars}</div>;
-}
+const sentimentAnalyzer = new Sentiment();
 
 function Reviews() {
-  const { trainerId, username } = useParams();
-  const currentUser = JSON.parse(localStorage.getItem('user')) || null;
+  const { trainerId } = useParams();
+  const navigate = useNavigate();
+  const currentUser = JSON.parse(localStorage.getItem('user')) || {};
 
+  const [trainer, setTrainer] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Modal state
-  const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
+  // Modal & form state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('add'); // add/edit
   const [currentReview, setCurrentReview] = useState(null);
-
-  // Form state
   const [rating, setRating] = useState('');
   const [comment, setComment] = useState('');
 
-  // Delete confirmation modal
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  // Delete state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [reviewToDelete, setReviewToDelete] = useState(null);
 
-  useEffect(() => {
-    const fetchReviews = async () => {
+  // Filter state
+  const [filterRating, setFilterRating] = useState('');
+  const [filterKeyword, setFilterKeyword] = useState('');
+
+  // Fetch trainer and reviews
+  const fetchReviews = async () => {
+    try {
       setLoading(true);
-      try {
-        const { data } = await api.get(`/reviews/${trainerId}`);
-        setReviews(data);
-      } catch (err) {
-        setErrors([err.response?.data?.message || err.message || 'Failed to fetch reviews']);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const trainerRes = await api.get(`/trainers/${trainerId}`);
+      setTrainer(trainerRes.data);
+
+      const reviewsRes = await api.get(`/reviews/${trainerId}`);
+      setReviews(reviewsRes.data);
+    } catch (err) {
+      setErrors([err.response?.data?.message || err.message || 'Failed to fetch data']);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchReviews();
   }, [trainerId]);
 
+  // Filtered reviews
+  const filteredReviews = useMemo(() => {
+    return reviews.filter((r) => {
+      const matchRating = filterRating ? r.rating === Number(filterRating) : true;
+      const matchKeyword = filterKeyword ? r.comment?.toLowerCase().includes(filterKeyword.toLowerCase()) : true;
+      return matchRating && matchKeyword;
+    });
+  }, [reviews, filterRating, filterKeyword]);
+
+  // Form validation
   const validateForm = () => {
-    const errors = [];
-    const ratingNumber = Number(rating);
-
-    if (!rating) {
-      errors.push('Rating is required');
-    } else if (!Number.isInteger(ratingNumber) || ratingNumber < 1 || ratingNumber > 5) {
-      errors.push('Rating must be an integer between 1 and 5');
-    }
-
-    if (comment.length > 500) {
-      errors.push('Comment cannot exceed 500 characters');
-    }
-
-    return errors;
+    const errs = [];
+    const r = Number(rating);
+    if (!rating) errs.push('Rating is required');
+    else if (!Number.isInteger(r) || r < 1 || r > 5) errs.push('Rating must be 1-5');
+    if (comment.length > 500) errs.push('Comment max 500 characters');
+    return errs;
   };
 
-  const openAddModal = () => {
-    setModalMode('add');
-    setCurrentReview(null);
-    setRating('');
-    setComment('');
-    setErrors([]);
-    setSuccessMessage('');
-    setShowModal(true);
-  };
-
-  const openEditModal = (review) => {
-    setModalMode('edit');
+  // Open modals
+  const openModal = (mode, review = null) => {
+    setModalMode(mode);
     setCurrentReview(review);
-    setRating(review.rating.toString());
-    setComment(review.comment || '');
+    setRating(review?.rating?.toString() || '');
+    setComment(review?.comment || '');
     setErrors([]);
     setSuccessMessage('');
-    setShowModal(true);
+    setModalOpen(true);
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-  };
+  const closeModal = () => setModalOpen(false);
 
+  // Submit review (add/edit)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors([]);
     setSuccessMessage('');
-
-    const validationErrors = validateForm();
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
+    const errs = validateForm();
+    if (errs.length) return setErrors(errs);
 
     try {
+      const payload = modalMode === 'add'
+        ? { rating: Number(rating), comment, clientName: currentUser.name || currentUser.username || 'Anonymous' }
+        : { rating: Number(rating), comment };
+
       const url = modalMode === 'add' ? `/reviews/${trainerId}` : `/reviews/${currentReview._id}`;
       const method = modalMode === 'add' ? api.post : api.put;
 
-      // Send clientName only when adding a review
-      const payload =
-        modalMode === 'add'
-          ? {
-              rating: Number(rating),
-              comment,
-              clientName: currentUser?.name || currentUser?.username || 'Anonymous',
-            }
-          : {
-              rating: Number(rating),
-              comment,
-            };
-
       await method(url, payload);
-
-      // Refresh reviews after success
-      const { data } = await api.get(`/reviews/${trainerId}`);
-      setReviews(data);
-
-      setSuccessMessage(modalMode === 'add' ? 'Review submitted successfully!' : 'Review updated successfully!');
-      setShowModal(false);
+      await fetchReviews();
+      setSuccessMessage(modalMode === 'add' ? 'Review added!' : 'Review updated!');
+      closeModal();
     } catch (err) {
-      setErrors(
-        err.response?.data?.errors?.map((e) => e.msg) ||
-          [err.response?.data?.message || 'Failed to submit review']
-      );
+      setErrors(err.response?.data?.errors?.map(e => e.msg) || [err.response?.data?.message || 'Failed']);
     }
   };
 
-  const openDeleteModal = (review) => {
-    setReviewToDelete(review);
-    setShowDeleteModal(true);
-  };
-
-  const closeDeleteModal = () => {
-    setShowDeleteModal(false);
-    setReviewToDelete(null);
-  };
-
+  // Delete review
   const handleDelete = async () => {
     if (!reviewToDelete) return;
-
     try {
       await api.delete(`/reviews/${reviewToDelete._id}`);
-
-      // Refresh reviews
-      const { data } = await api.get(`/reviews/${trainerId}`);
-      setReviews(data);
-      setSuccessMessage('Review deleted successfully!');
-      closeDeleteModal();
+      await fetchReviews();
+      setSuccessMessage('Review deleted!');
+      setDeleteModalOpen(false);
     } catch (err) {
-      setErrors(
-        err.response?.data?.errors?.map((e) => e.msg) ||
-          [err.response?.data?.message || 'Failed to delete review']
-      );
+      setErrors(err.response?.data?.errors?.map(e => e.msg) || [err.response?.data?.message || 'Failed to delete']);
     }
+  };
+
+  // Check if current user can edit/delete
+  const canEdit = (review) => review.clientName === (currentUser.name || currentUser.username);
+
+  // Sentiment analysis
+  const getSentimentLabel = (comment) => {
+    if (!comment) return 'Neutral';
+    const result = sentimentAnalyzer.analyze(comment);
+    if (result.score > 0) return 'Positive';
+    if (result.score < 0) return 'Negative';
+    return 'Neutral';
+  };
+
+  const getSentimentColor = (sentiment) => {
+    if (sentiment === 'Positive') return 'green';
+    if (sentiment === 'Negative') return 'red';
+    return 'gray';
   };
 
   return (
     <div className="container my-4" style={{ maxWidth: 700 }}>
-      <h2 className="mb-4">Reviews for {username || 'Trainer'}</h2>
+      <button className="btn btn-outline-secondary mb-3" onClick={() => navigate(-1)}>&larr; Back</button>
 
-      {errors.length > 0 && (
-        <div className="alert alert-danger" role="alert">
-          <ul className="mb-0">
-            {errors.map((err, idx) => (
-              <li key={idx}>{err}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="alert alert-success" role="alert">
-          {successMessage}
-        </div>
-      )}
-
-      <div className="mb-3 d-flex justify-content-between align-items-center">
-        <h5>All Reviews ({reviews.length})</h5>
-        {/* Show Add Review button for any logged-in user */}
-        {currentUser && (
-          <button className="btn btn-primary" onClick={openAddModal}>
-            Add Review
-          </button>
-        )}
-      </div>
-
-      {loading ? (
-        <div>Loading reviews...</div>
-      ) : reviews.length === 0 ? (
-        <p>No reviews yet.</p>
-      ) : (
-        reviews.map((review) => (
-          <div key={review._id} className="card mb-3">
-            <div className="card-body">
-              <h6 className="card-title">
-                {/* Display stars for rating */}
-                {[...Array(5)].map((_, i) => (
-                  <span
-                    key={i}
-                    style={{ color: i < review.rating ? '#ffc107' : '#e4e5e9', fontSize: '1.2rem' }}
-                    aria-hidden="true"
-                  >
-                    ★
-                  </span>
-                ))}{' '}
-                <small className="text-muted">by {review.clientName || 'User'}</small>
-              </h6>
-              <p className="card-text">{review.comment || <em>No comment</em>}</p>
-
-              {/* Only allow edit/delete if current user is the reviewer */}
-              {currentUser?._id === review.user && (
-                <>
-                  <button
-                    className="btn btn-sm btn-outline-secondary me-2"
-                    onClick={() => openEditModal(review)}
-                  >
-                    Edit
-                  </button>
-                  <button className="btn btn-sm btn-outline-danger" onClick={() => openDeleteModal(review)}>
-                    Delete
-                  </button>
-                </>
-              )}
+      {/* Trainer */}
+      {trainer && (
+        <div className="card mb-4 shadow-sm">
+          <div className="row g-0 align-items-center">
+            <div className="col-md-4">
+              <img src={trainer.imageUrl || '/default-trainer.png'} alt={trainer.name} className="img-fluid rounded-start" style={{ height: '100%', objectFit: 'cover' }} />
+            </div>
+            <div className="col-md-8">
+              <div className="card-body">
+                <h3>{trainer.name}</h3>
+                <p><strong>Specialization:</strong> {trainer.specialization || 'N/A'}</p>
+                <p><strong>Experience:</strong> {trainer.experience || 'N/A'} years</p>
+                <p><strong>Bio:</strong> {trainer.bio || 'No bio available'}</p>
+              </div>
             </div>
           </div>
-        ))
+        </div>
       )}
 
+      {/* Messages */}
+      {errors.length > 0 && <div className="alert alert-danger">{errors.map((e, idx) => <div key={idx}>{e}</div>)}</div>}
+      {successMessage && <div className="alert alert-success">{successMessage}</div>}
+
+      {/* Filters */}
+      <div className="mb-3 d-flex gap-2 align-items-center flex-wrap">
+        <label>Rating:</label>
+        <select className="form-select w-auto" value={filterRating} onChange={e => setFilterRating(e.target.value)}>
+          <option value="">All</option>
+          {[1, 2, 3, 4, 5].map(r => <option key={r} value={r}>{r}★</option>)}
+        </select>
+
+        <label>Search:</label>
+        <input type="text" className="form-control w-auto" placeholder="Keyword..." value={filterKeyword} onChange={e => setFilterKeyword(e.target.value)} />
+      </div>
+
+      <div className="mb-3 d-flex justify-content-between align-items-center">
+        <h5>Reviews ({filteredReviews.length})</h5>
+        {currentUser && <button className="btn btn-primary" onClick={() => openModal('add')}>Add Review</button>}
+      </div>
+
+      {/* Reviews list */}
+      {loading ? <p>Loading...</p> :
+        filteredReviews.length === 0 ? <p>No reviews found.</p> :
+          filteredReviews.map((r) => {
+            const sentiment = getSentimentLabel(r.comment);
+            return (
+              <div key={r._id} className="card mb-3 shadow-sm">
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      {[...Array(5)].map((_, i) => <span key={i} style={{ color: i < r.rating ? '#ffc107' : '#e4e5e9', fontSize: '1.2rem' }}>★</span>)}
+                      <small className="text-muted ms-2">by {r.clientName || 'User'}</small>
+                    </div>
+                    {canEdit(r) && (
+                      <div>
+                        <button className="btn btn-sm btn-outline-secondary me-2" onClick={() => openModal('edit', r)}>Edit</button>
+                        <button className="btn btn-sm btn-outline-danger" onClick={() => { setReviewToDelete(r); setDeleteModalOpen(true); }}>Delete</button>
+                      </div>
+                    )}
+                  </div>
+                  <p className="mt-2">{r.comment || <em>No comment</em>}</p>
+                  <p className="mt-1"><strong>Sentiment:</strong> <span style={{ color: getSentimentColor(sentiment) }}>{sentiment}</span></p>
+                </div>
+              </div>
+            )
+          })
+      }
+
       {/* Add/Edit Modal */}
-      {showModal && (
-        <div
-          className="modal fade show d-block"
-          tabIndex="-1"
-          role="dialog"
-          aria-labelledby="reviewModalLabel"
-          aria-modal="true"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-        >
-          <div className="modal-dialog" role="document">
-            <div className="modal-content" style={{ zIndex: 1050 }}>
+      {modalOpen && (
+        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
               <form onSubmit={handleSubmit}>
                 <div className="modal-header">
-                  <h5 className="modal-title" id="reviewModalLabel">
-                    {modalMode === 'add' ? 'Add Review' : 'Edit Review'}
-                  </h5>
-                  <button type="button" className="btn-close" aria-label="Close" onClick={closeModal}></button>
+                  <h5>{modalMode === 'add' ? 'Add Review' : 'Edit Review'}</h5>
+                  <button type="button" className="btn-close" onClick={closeModal}></button>
                 </div>
                 <div className="modal-body">
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Rating (1-5) <span className="text-danger">*</span>
-                    </label>
-                    <StarRating rating={rating} setRating={setRating} />
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="commentInput" className="form-label">
-                      Comment (optional)
-                    </label>
-                    <textarea
-                      className="form-control"
-                      id="commentInput"
-                      rows="4"
-                      maxLength={500}
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      placeholder="Write your review here (max 500 chars)"
-                    />
-                    <div className="form-text text-end">{comment.length} / 500 characters</div>
+                  <label>Rating *</label>
+                  <StarRating rating={rating} setRating={setRating} />
+                  <div className="mb-3 mt-2">
+                    <label>Comment</label>
+                    <textarea className="form-control" rows="4" value={comment} onChange={e => setComment(e.target.value)} maxLength={500} />
+                    <small className="text-end d-block">{comment.length}/500</small>
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={closeModal}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    {modalMode === 'add' ? 'Submit Review' : 'Update Review'}
-                  </button>
+                  <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                  <button type="submit" className="btn btn-primary">{modalMode === 'add' ? 'Submit' : 'Update'}</button>
                 </div>
               </form>
             </div>
@@ -313,49 +262,23 @@ function Reviews() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div
-          className="modal fade show d-block"
-          tabIndex="-1"
-          role="dialog"
-          aria-labelledby="deleteModalLabel"
-          aria-modal="true"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-        >
-          <div className="modal-dialog modal-sm modal-dialog-centered" role="document">
-            <div className="modal-content" style={{ zIndex: 1050 }}>
+      {/* Delete Modal */}
+      {deleteModalOpen && reviewToDelete && (
+        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-sm modal-dialog-centered">
+            <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title" id="deleteModalLabel">
-                  Confirm Delete
-                </h5>
-                <button type="button" className="btn-close" aria-label="Close" onClick={closeDeleteModal}></button>
+                <h5>Confirm Delete</h5>
+                <button type="button" className="btn-close" onClick={() => setDeleteModalOpen(false)}></button>
               </div>
               <div className="modal-body">
                 Are you sure you want to delete this review?
-                <p>
-                  <strong>Rating:</strong>{' '}
-                  {[...Array(5)].map((_, i) => (
-                    <span
-                      key={i}
-                      style={{ color: i < reviewToDelete.rating ? '#ffc107' : '#e4e5e9', fontSize: '1.2rem' }}
-                      aria-hidden="true"
-                    >
-                      ★
-                    </span>
-                  ))}
-                </p>
-                <p>
-                  <strong>Comment:</strong> {reviewToDelete.comment || <em>No comment</em>}
-                </p>
+                <p><strong>Rating:</strong> {[...Array(5)].map((_, i) => <span key={i} style={{ color: i < reviewToDelete.rating ? '#ffc107' : '#e4e5e9' }}>★</span>)}</p>
+                <p><strong>Comment:</strong> {reviewToDelete.comment || <em>No comment</em>}</p>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeDeleteModal}>
-                  Cancel
-                </button>
-                <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                  Delete
-                </button>
+                <button className="btn btn-secondary" onClick={() => setDeleteModalOpen(false)}>Cancel</button>
+                <button className="btn btn-danger" onClick={handleDelete}>Delete</button>
               </div>
             </div>
           </div>

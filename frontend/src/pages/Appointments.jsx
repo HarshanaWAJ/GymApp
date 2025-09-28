@@ -1,5 +1,4 @@
 // src/components/Appointments.jsx
-
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   Box,
@@ -24,13 +23,15 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
+  Avatar,
+  Stack,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import axiosInstance from '../api/axiosInstance'; // adjust path if necessary
+import axiosInstance from '../api/axiosInstance';
 import StoreUserSidebar from '../components/StoreUserSidebar';
 
 // Days order constant for grouping
@@ -52,11 +53,40 @@ function TrainerCard({ trainer, slots, onBook, onContact, onManageRating }) {
   const grouped = useMemo(() => groupSlotsByDay(slots), [slots]);
 
   return (
-    <Card elevation={4} sx={{ borderRadius: 3, mb: 3, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+    <Card
+      elevation={4}
+      sx={{
+        borderRadius: 3,
+        mb: 3,
+        p: 2,
+        transition: '0.3s',
+        '&:hover': { boxShadow: '0 6px 16px rgba(0,0,0,0.2)', transform: 'translateY(-3px)' },
+      }}
+    >
       <CardContent>
-        <Typography variant="h6" fontWeight={700} color="primary.dark" gutterBottom>
-          {trainer.name}
-        </Typography>
+        {/* Header with image + name */}
+        <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+          <Avatar
+            src={trainer.imageUrl}
+            alt={trainer.name}
+            sx={{ width: 72, height: 72, border: '2px solid #1976d2' }}
+          >
+            {trainer.name?.[0]}
+          </Avatar>
+          <Box>
+            <Typography variant="h6" fontWeight={700} color="primary.dark">
+              {trainer.name}
+            </Typography>
+            <Chip
+              label={trainer.available ? 'Available' : 'Unavailable'}
+              color={trainer.available ? 'success' : 'error'}
+              size="small"
+              sx={{ fontWeight: 600, mt: 0.5 }}
+            />
+          </Box>
+        </Stack>
+
+        {/* Trainer details */}
         <Typography variant="body2" color="text.primary" gutterBottom>
           <strong>Specialization:</strong> {trainer.specialization}
         </Typography>
@@ -66,19 +96,13 @@ function TrainerCard({ trainer, slots, onBook, onContact, onManageRating }) {
         <Typography variant="body2" color="text.primary" gutterBottom>
           <strong>Rating:</strong>{' '}
           {trainer.reviewSummary?.averageRating
-            ? `${trainer.reviewSummary.averageRating.toFixed(1)} (${trainer.reviewSummary.totalReviews} reviews)`
+            ? `${trainer.reviewSummary.averageRating.toFixed(1)} ⭐ (${trainer.reviewSummary.totalReviews} reviews)`
             : 'No ratings yet'}
         </Typography>
 
-        <Chip
-          label={trainer.available ? 'Available' : 'Unavailable'}
-          color={trainer.available ? 'success' : 'error'}
-          size="small"
-          sx={{ fontWeight: 600, mt: 1, px: 1.5, borderRadius: 1 }}
-        />
-
         <Divider sx={{ my: 2 }} />
 
+        {/* Time slots */}
         <Typography variant="subtitle2" fontWeight={600} gutterBottom>
           Available Time Slots:
         </Typography>
@@ -89,15 +113,19 @@ function TrainerCard({ trainer, slots, onBook, onContact, onManageRating }) {
           </Typography>
         ) : (
           daysOrder.map((day) => (
-            <Accordion key={day} sx={{ bgcolor: 'grey.100', mb: 1 }} TransitionProps={{ unmountOnExit: true }}>
+            <Accordion
+              key={day}
+              sx={{
+                bgcolor: 'grey.50',
+                mb: 1,
+                borderRadius: 2,
+                '&:before': { display: 'none' },
+              }}
+              TransitionProps={{ unmountOnExit: true }}
+            >
               <AccordionSummary expandIcon={<ExpandMoreIcon />} id={`${day}-header`}>
                 <Typography sx={{ flexGrow: 1 }}>{day}</Typography>
-                <Chip
-                  label={grouped[day]?.length || 0}
-                  size="small"
-                  color="primary"
-                  sx={{ fontWeight: 600 }}
-                />
+                <Chip label={grouped[day]?.length || 0} size="small" color="primary" />
               </AccordionSummary>
               <AccordionDetails>
                 <Grid container spacing={1}>
@@ -118,9 +146,13 @@ function TrainerCard({ trainer, slots, onBook, onContact, onManageRating }) {
                             sx={{
                               textTransform: 'none',
                               minWidth: 110,
-                              bgcolor: isBooked && !isCanceled ? 'error.main' : 'inherit',
-                              color: isBooked && !isCanceled ? 'white' : 'inherit',
-                              pointerEvents: isBooked && !isCanceled ? 'none' : 'auto',
+                              borderRadius: 2,
+                              bgcolor: isBooked && !isCanceled ? 'error.main' : 'white',
+                              color: isBooked && !isCanceled ? 'white' : 'text.primary',
+                              fontWeight: 600,
+                              '&:hover': {
+                                bgcolor: isBooked && !isCanceled ? 'error.main' : 'primary.light',
+                              },
                             }}
                           >
                             {slot.startTime} - {slot.endTime}
@@ -136,6 +168,7 @@ function TrainerCard({ trainer, slots, onBook, onContact, onManageRating }) {
         )}
       </CardContent>
 
+      {/* Actions */}
       <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
         <Button size="small" variant="outlined" onClick={() => onManageRating(trainer)}>
           Manage Rating

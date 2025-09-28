@@ -22,6 +22,7 @@ import Appointments from './pages/Appointments';
 import Reviews from './pages/Reviews';
 import AppointmentManagement from './pages/AppointmentManagement';
 import MyAppointments from './pages/MyAppointments';
+import AdminReviews from './pages/AdminReviews';
 
 const AppRoutes = () => {
   const location = useLocation();
@@ -205,6 +206,16 @@ const AppRoutes = () => {
           element={
             isAuthenticated && userRole === 'user' ? (
               <MyAppointments />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/admin-reviews"
+          element={
+            isAuthenticated && userRole === 'admin' ? (
+              <AdminReviews />
             ) : (
               <Navigate to="/login" />
             )

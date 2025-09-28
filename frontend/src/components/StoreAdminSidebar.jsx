@@ -21,6 +21,7 @@ const Sidebar = () => {
         <a href="/admin-sale-summary">Sales</a>
         <a href="/admin-trainer-management">Trainer Management</a>
         <a href="/admin-appointment-management">Appointment Management</a>
+        <a href="/admin-reviews">Reviews</a>
       </div>
     </>
   );

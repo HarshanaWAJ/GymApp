@@ -25,8 +25,6 @@ const style = {
   borderRadius: 3,
   boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
   p: 5,
-  outline: 'none',
-  backdropFilter: 'blur(8px)',
 };
 
 export default function AddTrainerModal({ open, handleClose, onAdd }) {
@@ -35,252 +33,71 @@ export default function AddTrainerModal({ open, handleClose, onAdd }) {
     specialization: '',
     experience: '',
     available: true,
-    contact: {
-      phone: '',
-      email: '',
-    },
+    contact: { phone: '', email: '' },
+    image: null,
   });
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-
-    if (name === 'phone' || name === 'email') {
+    const { name, value, type, checked, files } = e.target;
+    if (files && files.length > 0) {
+      setTrainer((prev) => ({ ...prev, image: files[0] }));
+    } else if (name === 'phone' || name === 'email') {
       setTrainer((prev) => ({
         ...prev,
-        contact: {
-          ...prev.contact,
-          [name]: value,
-        },
+        contact: { ...prev.contact, [name]: value },
       }));
     } else if (type === 'checkbox') {
-      setTrainer((prev) => ({
-        ...prev,
-        [name]: checked,
-      }));
+      setTrainer((prev) => ({ ...prev, [name]: checked }));
     } else {
-      setTrainer((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      setTrainer((prev) => ({ ...prev, [name]: value }));
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    if (!trainer.name.trim()) return alert('Name is required');
-    if (!trainer.specialization.trim()) return alert('Specialization is required');
-    if (trainer.experience === '' || Number(trainer.experience) < 0)
-      return alert('Experience must be 0 or more');
-
-    onAdd(trainer);
+    const formData = new FormData();
+    formData.append('name', trainer.name);
+    formData.append('specialization', trainer.specialization);
+    formData.append('experience', trainer.experience);
+    formData.append('available', trainer.available);
+    formData.append('phone', trainer.contact.phone);
+    formData.append('email', trainer.contact.email);
+    if (trainer.image) {
+      formData.append('image', trainer.image);
+    }
+    onAdd(formData);
     handleClose();
     setTrainer({
       name: '',
       specialization: '',
       experience: '',
       available: true,
-      contact: {
-        phone: '',
-        email: '',
-      },
+      contact: { phone: '', email: '' },
+      image: null,
     });
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={handleClose}
-      aria-labelledby="add-trainer-title"
-      closeAfterTransition
-      sx={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-    >
+    <Modal open={open} onClose={handleClose}>
       <Box sx={style} component="form" onSubmit={handleSubmit} noValidate>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4" fontWeight="700" color="primary.dark">
-            Add Trainer
-          </Typography>
-          <IconButton
-            onClick={handleClose}
-            sx={{
-              color: 'grey.600',
-              transition: 'color 0.3s',
-              '&:hover': { color: 'primary.main' },
-            }}
-            aria-label="close modal"
-          >
-            <CloseIcon />
-          </IconButton>
+        <Box display="flex" justifyContent="space-between" mb={3}>
+          <Typography variant="h4">Add Trainer</Typography>
+          <IconButton onClick={handleClose}><CloseIcon /></IconButton>
         </Box>
-        <Stack spacing={3}>
-          <TextField
-            required
-            name="name"
-            label="Full Name"
-            variant="outlined"
-            fullWidth
-            value={trainer.name}
-            onChange={handleChange}
-            placeholder="John Doe"
-            InputProps={{
-              sx: {
-                borderRadius: 2,
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.07)',
-                transition: 'all 0.3s ease',
-                '&.Mui-focused': {
-                  boxShadow: '0 4px 10px rgba(25, 118, 210, 0.3)',
-                  borderColor: 'primary.main',
-                },
-              },
-            }}
-          />
-          <TextField
-            required
-            name="specialization"
-            label="Specialization"
-            variant="outlined"
-            fullWidth
-            value={trainer.specialization}
-            onChange={handleChange}
-            placeholder="Yoga, Strength Training..."
-            InputProps={{
-              sx: {
-                borderRadius: 2,
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.07)',
-                transition: 'all 0.3s ease',
-                '&.Mui-focused': {
-                  boxShadow: '0 4px 10px rgba(25, 118, 210, 0.3)',
-                },
-              },
-            }}
-          />
-          <TextField
-            required
-            name="experience"
-            label="Experience (years)"
-            variant="outlined"
-            fullWidth
-            type="number"
-            value={trainer.experience}
-            onChange={handleChange}
-            inputProps={{ min: 0 }}
-            placeholder="0"
-            InputProps={{
-              sx: {
-                borderRadius: 2,
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.07)',
-                transition: 'all 0.3s ease',
-                '&.Mui-focused': {
-                  boxShadow: '0 4px 10px rgba(25, 118, 210, 0.3)',
-                },
-              },
-            }}
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={trainer.available}
-                onChange={handleChange}
-                name="available"
-                color="primary"
-                sx={{ p: 0 }}
-              />
-            }
-            label="Available for new clients"
-            sx={{ userSelect: 'none' }}
-          />
-          <TextField
-            name="phone"
-            label="Phone Number"
-            variant="outlined"
-            fullWidth
-            value={trainer.contact.phone}
-            onChange={handleChange}
-            placeholder="+1 555 123 4567"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <PhoneIcon color="action" />
-                </InputAdornment>
-              ),
-              sx: {
-                borderRadius: 2,
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.07)',
-                transition: 'all 0.3s ease',
-                '&.Mui-focused': {
-                  boxShadow: '0 4px 10px rgba(25, 118, 210, 0.3)',
-                },
-              },
-            }}
-          />
-          <TextField
-            name="email"
-            label="Email Address"
-            variant="outlined"
-            fullWidth
-            value={trainer.contact.email}
-            onChange={handleChange}
-            placeholder="email@example.com"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <EmailIcon color="action" />
-                </InputAdornment>
-              ),
-              sx: {
-                borderRadius: 2,
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.07)',
-                transition: 'all 0.3s ease',
-                '&.Mui-focused': {
-                  boxShadow: '0 4px 10px rgba(25, 118, 210, 0.3)',
-                },
-              },
-            }}
-          />
+        <Stack spacing={2}>
+          <TextField name="name" label="Full Name" fullWidth required value={trainer.name} onChange={handleChange}/>
+          <TextField name="specialization" label="Specialization" fullWidth required value={trainer.specialization} onChange={handleChange}/>
+          <TextField name="experience" label="Experience (years)" type="number" fullWidth required value={trainer.experience} onChange={handleChange}/>
+          <FormControlLabel control={<Checkbox checked={trainer.available} name="available" onChange={handleChange}/>} label="Available"/>
+          <TextField name="phone" label="Phone" fullWidth value={trainer.contact.phone} onChange={handleChange} InputProps={{ startAdornment: <InputAdornment position="start"><PhoneIcon/></InputAdornment>}}/>
+          <TextField name="email" label="Email" fullWidth value={trainer.contact.email} onChange={handleChange} InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon/></InputAdornment>}}/>
+          <Button variant="outlined" component="label">
+            Upload Image
+            <input type="file" hidden accept="image/*" onChange={handleChange}/>
+          </Button>
         </Stack>
-
-        <Box
-          mt={5}
-          display="flex"
-          justifyContent="flex-end"
-          gap={2}
-        >
-          <Button
-            variant="outlined"
-            onClick={handleClose}
-            sx={{
-              borderRadius: 3,
-              paddingX: 3,
-              fontWeight: 600,
-              color: 'grey.700',
-              borderColor: 'grey.400',
-              transition: 'all 0.3s',
-              '&:hover': {
-                backgroundColor: 'grey.100',
-                borderColor: 'primary.main',
-                color: 'primary.main',
-              },
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            sx={{
-              borderRadius: 3,
-              paddingX: 4,
-              fontWeight: 700,
-              background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-              boxShadow: '0 6px 12px rgba(33, 203, 243, 0.6)',
-              '&:hover': {
-                background: 'linear-gradient(45deg, #21CBF3 30%, #2196F3 90%)',
-                boxShadow: '0 8px 16px rgba(33, 203, 243, 0.8)',
-              },
-            }}
-          >
-            Add Trainer
-          </Button>
+        <Box mt={3} textAlign="right">
+          <Button variant="contained" type="submit">Add Trainer</Button>
         </Box>
       </Box>
     </Modal>

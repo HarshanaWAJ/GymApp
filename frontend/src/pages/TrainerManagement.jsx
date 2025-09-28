@@ -24,7 +24,7 @@ import AddTrainerModal from './forms/AddTrainerModal';
 import UpdateTrainerModal from './forms/UpdateTrainerModal';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import ScheduleIcon from '@mui/icons-material/Schedule'; // Icon for Manage Time Slots
+import ScheduleIcon from '@mui/icons-material/Schedule';
 
 function TrainerManagement() {
   const sidebarWidth = 200;
@@ -54,16 +54,20 @@ function TrainerManagement() {
 
   const handleAddTrainer = async (trainerData) => {
     try {
-      await axiosInstance.post('/trainers/add-trainer', trainerData);
+      await axiosInstance.post('/trainers/add-trainer', trainerData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       fetchTrainers();
     } catch (error) {
       console.error('Error adding trainer:', error);
     }
   };
 
-  const handleUpdateTrainer = async (trainerData) => {
+  const handleUpdateTrainer = async (trainerData, id) => {
     try {
-      await axiosInstance.put(`/trainers/update-trainer/${selectedTrainer._id}`, trainerData);
+      await axiosInstance.put(`/trainers/update-trainer/${id}`, trainerData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       fetchTrainers();
     } catch (error) {
       console.error('Error updating trainer:', error);
@@ -180,6 +184,7 @@ function TrainerManagement() {
               <Table>
                 <TableHead>
                   <TableRow>
+                    <TableCell>Image</TableCell>
                     <TableCell>Name</TableCell>
                     <TableCell>Specialization</TableCell>
                     <TableCell>Experience (years)</TableCell>
@@ -191,13 +196,24 @@ function TrainerManagement() {
                 <TableBody>
                   {trainersInGroup.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center">
+                      <TableCell colSpan={7} align="center">
                         No trainers found.
                       </TableCell>
                     </TableRow>
                   ) : (
                     trainersInGroup.map((trainer) => (
                       <TableRow key={trainer._id}>
+                        <TableCell>
+                          {trainer.imageUrl ? (
+                            <img
+                              src={trainer.imageUrl}
+                              alt={trainer.name}
+                              style={{ width: 50, height: 50, borderRadius: '50%' }}
+                            />
+                          ) : (
+                            'No Image'
+                          )}
+                        </TableCell>
                         <TableCell>{trainer.name}</TableCell>
                         <TableCell>{trainer.specialization}</TableCell>
                         <TableCell>{trainer.experience}</TableCell>
@@ -219,8 +235,6 @@ function TrainerManagement() {
                           <IconButton color="error" onClick={() => handleDeleteTrainer(trainer._id)}>
                             <DeleteIcon />
                           </IconButton>
-
-                          {/* Manage Time Slots button */}
                           <IconButton
                             color="info"
                             onClick={() => navigate(`/admin-timeslot-management/${trainer._id}`)}
