@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -17,15 +17,13 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import axiosInstance from "../../api/axiosInstance";
 
-// Helper: format card number input as XXXX XXXX XXXX XXXX
+// Helpers for formatting inputs (same as before)
 const formatCardNumber = (value) => {
   return value
     .replace(/\D/g, "")
     .replace(/(.{4})/g, "$1 ")
     .trim();
 };
-
-// Helper: format expiration date MM/YY
 const formatExpDate = (value) => {
   const val = value.replace(/\D/g, "");
   if (val.length === 0) return "";
@@ -41,24 +39,38 @@ function PaymentModal({ open, onClose, totalAmount, cartId, onPaymentSuccess }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
-
-  // Inline input errors for better UX
   const [errors, setErrors] = useState({});
 
-  // Validations
+  // New state to hold the logged in user's email
+  const [userEmail, setUserEmail] = useState(null);
+
+  useEffect(() => {
+    // Read the user email from localStorage when the modal opens
+    if (open) {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUserEmail(parsedUser.email || null);
+        } catch {
+          setUserEmail(null);
+        }
+      } else {
+        setUserEmail(null);
+      }
+    }
+  }, [open]);
+
+  // Validation functions (same as before)
   const validateCardHolder = (name) => name.trim().length > 0;
-
   const validateCardNumber = (num) => /^\d{13,19}$/.test(num.replace(/\s/g, ""));
-
   const validateExpDate = (date) => {
     if (!/^(0[1-9]|1[0-2])\/?([0-9]{2})$/.test(date)) return false;
-    // Check if date is in the future
     const [month, year] = date.split("/");
-    const expiry = new Date(`20${year}`, month); // month is 0-based in JS date, but here it's ok for check
+    const expiry = new Date(`20${year}`, month);
     const now = new Date();
     return expiry > now;
   };
-
   const validateCvv = (value) => /^\d{3,4}$/.test(value);
 
   const handlePayment = async () => {
@@ -68,6 +80,7 @@ function PaymentModal({ open, onClose, totalAmount, cartId, onPaymentSuccess }) 
     if (!validateExpDate(expDate)) newErrors.expDate = "Expiration date must be in MM/YY format and valid.";
     if (!validateCvv(cvv)) newErrors.cvv = "CVV must be 3 or 4 digits.";
     if (!cartId) newErrors.cartId = "Invalid cart ID.";
+    if (!userEmail) newErrors.email = "User email not found. Please log in.";
 
     setErrors(newErrors);
     setError(null);
@@ -76,19 +89,16 @@ function PaymentModal({ open, onClose, totalAmount, cartId, onPaymentSuccess }) 
 
     setLoading(true);
     try {
-      // 1. Process payment
       const paymentPayload = {
         cart: cartId,
         payment: totalAmount,
         card_holder: cardHolder.trim(),
         card_number: cardNumber.replace(/\s/g, ""),
         exp_date: expDate.trim(),
-        cvv: cvv.trim(),
+        email: userEmail,
       };
 
       await axiosInstance.post("/payment/add", paymentPayload);
-
-      // 2. Update cart status to 'payed' AFTER payment success
       await axiosInstance.put(`/cart/update/${cartId}`, { status: "payed" });
 
       setSuccessMsg("Payment successful!");
@@ -108,6 +118,7 @@ function PaymentModal({ open, onClose, totalAmount, cartId, onPaymentSuccess }) 
     setExpDate("");
     setCvv("");
     setErrors({});
+    setUserEmail(null);
     onClose();
   };
 
@@ -122,8 +133,7 @@ function PaymentModal({ open, onClose, totalAmount, cartId, onPaymentSuccess }) 
           variant="body1"
           sx={{ textAlign: "center", mb: 3, color: "text.secondary" }}
         >
-          Enter your card details to complete the payment of{" "}
-          <strong>${totalAmount.toFixed(2)}</strong>.
+          Enter your card details to complete the payment of <strong>${totalAmount.toFixed(2)}</strong>.
         </Typography>
 
         <Box component="form" noValidate autoComplete="off" sx={{ mt: 1 }}>
@@ -150,7 +160,7 @@ function PaymentModal({ open, onClose, totalAmount, cartId, onPaymentSuccess }) 
             disabled={loading}
             error={!!errors.cardNumber}
             helperText={errors.cardNumber || "Enter 13 to 19 digits"}
-            inputProps={{ maxLength: 23 /* 19 digits + spaces */ }}
+            inputProps={{ maxLength: 23 }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">

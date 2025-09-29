@@ -109,6 +109,8 @@ function AppointmentManagement() {
       setLoading(true);
       const res = await axiosInstance.get('/bookings');
       const data = res.data || [];
+      console.log('Fetched bookings:', data);
+      
       setBookings(data);
       processChartData(data);
     } catch (err) {

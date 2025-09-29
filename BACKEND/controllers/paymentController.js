@@ -2,13 +2,14 @@ const Payment = require('../models/paymentModel');
 
 // Use for fetch purchase history of user
 const Cart = require('../models/cartModel');
+const sendEmail = require('../helpers/emailSend'); 
 
 class PaymentController {
   // Create a new payment
   static async createPayment(req, res) {
     try {
-      const { cart, payment, card_holder, card_number, exp_date } = req.body;
-      
+      const { cart, payment, card_holder, card_number, exp_date, email } = req.body;
+
       const newPayment = new Payment({
         cart,
         payment,
@@ -18,6 +19,28 @@ class PaymentController {
       });
 
       const savedPayment = await newPayment.save();
+
+      // Mask the card number: show only last 4 digits
+      const maskedCardNumber = card_number.slice(-4).padStart(card_number.length, '*');
+
+      // Compose the email
+      const emailSubject = 'Payment Confirmation';
+      const emailText = `Dear ${card_holder},\n\nYour payment of ${payment} has been processed successfully using card ending in ${maskedCardNumber}.`;
+      const emailHtml = `
+        <p>Dear ${card_holder},</p>
+        <p>Your payment of <strong>${payment}</strong> has been processed successfully using card ending in <strong>${maskedCardNumber}</strong>.</p>
+        <p>Thank you for your purchase!</p>
+      `;
+
+      if (email) {
+        await sendEmail({
+          to: email,
+          subject: emailSubject,
+          text: emailText,
+          html: emailHtml
+        });
+      }
+
       res.status(201).json(savedPayment);
     } catch (error) {
       res.status(400).json({ message: error.message });
