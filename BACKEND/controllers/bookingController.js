@@ -1,6 +1,7 @@
 const Booking = require('../models/bookingModel');
 const TimeSlot = require('../models/timeSlotModel');
 const Trainer = require('../models/trainerModel');
+const sendEmail = require('../helpers/emailSend');
 
 // Book a trainer's available time slot
 exports.bookTrainer = async (req, res) => {
@@ -67,22 +68,52 @@ exports.updateBookingStatus = async (req, res) => {
   const { status } = req.body;
 
   // Only allow specific statuses
-  const validStatuses = ['pending', 'confirmed', 'cancelled'];
+  const validStatuses = ['pending', 'confirmed', 'cancelled', 'completed'];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ message: 'Invalid booking status' });
   }
 
   try {
+    // Find and update booking
     const booking = await Booking.findByIdAndUpdate(
       bookingId,
       { status },
       { new: true }
-    );
+    )
+    .populate('trainerId')
+    .populate('slotId');
 
-    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
 
-    res.json({ message: 'Booking status updated', booking });
+    // If client email exists, send email
+    const clientEmail = booking.clientContact?.email;
+    if (clientEmail) {
+      const trainerName = booking.trainerId?.name || 'your trainer';
+      const slotTime = booking.slotId?.time || 'scheduled time';
+      const formattedDate = booking.date ? new Date(booking.date).toDateString() : 'Unknown date';
+
+      await sendEmail({
+        to: clientEmail,
+        subject: 'Booking Status Updated',
+        text: `Hello ${booking.clientName}, your booking status has been updated to: ${status}.`,
+        html: `
+          <p>Dear ${booking.clientName},</p>
+          <p>Your booking with <strong>${trainerName}</strong> has been updated.</p>
+          <p><strong>Status:</strong> ${status}</p>
+          <p><strong>Date:</strong> ${formattedDate}</p>
+          <p><strong>Time:</strong> ${slotTime}</p>
+          <br />
+          <p>Thank you for using our service!</p>
+        `,
+      });
+    }
+
+    res.json({ message: 'Booking status updated and email sent', booking });
+
   } catch (err) {
+    console.error('Error updating booking or sending email:', err);
     res.status(500).json({ error: err.message });
   }
 };

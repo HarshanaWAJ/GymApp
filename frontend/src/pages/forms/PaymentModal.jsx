@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -45,6 +45,18 @@ function PaymentModal({ open, onClose, totalAmount, cartId, onPaymentSuccess }) 
   // Inline input errors for better UX
   const [errors, setErrors] = useState({});
 
+  // User email state
+  const [userEmail, setUserEmail] = useState("");
+
+  // Load user email from localStorage on mount or when modal opens
+  useEffect(() => {
+    if (open) {
+      const storedUser = localStorage.getItem("user");
+      const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+      setUserEmail(parsedUser?.email || "");
+    }
+  }, [open]);
+
   // Validations
   const validateCardHolder = (name) => name.trim().length > 0;
 
@@ -54,7 +66,8 @@ function PaymentModal({ open, onClose, totalAmount, cartId, onPaymentSuccess }) 
     if (!/^(0[1-9]|1[0-2])\/?([0-9]{2})$/.test(date)) return false;
     // Check if date is in the future
     const [month, year] = date.split("/");
-    const expiry = new Date(`20${year}`, month); // month is 0-based in JS date, but here it's ok for check
+    // Create expiry date at end of the month
+    const expiry = new Date(`20${year}`, parseInt(month), 0);
     const now = new Date();
     return expiry > now;
   };
@@ -68,6 +81,7 @@ function PaymentModal({ open, onClose, totalAmount, cartId, onPaymentSuccess }) 
     if (!validateExpDate(expDate)) newErrors.expDate = "Expiration date must be in MM/YY format and valid.";
     if (!validateCvv(cvv)) newErrors.cvv = "CVV must be 3 or 4 digits.";
     if (!cartId) newErrors.cartId = "Invalid cart ID.";
+    if (!userEmail) newErrors.userEmail = "User email not found.";
 
     setErrors(newErrors);
     setError(null);
@@ -84,6 +98,7 @@ function PaymentModal({ open, onClose, totalAmount, cartId, onPaymentSuccess }) 
         card_number: cardNumber.replace(/\s/g, ""),
         exp_date: expDate.trim(),
         cvv: cvv.trim(),
+        email: userEmail, // Pass email to backend for sending confirmation
       };
 
       await axiosInstance.post("/payment/add", paymentPayload);
@@ -117,13 +132,8 @@ function PaymentModal({ open, onClose, totalAmount, cartId, onPaymentSuccess }) 
         Secure Payment
       </DialogTitle>
       <DialogContent>
-        <Typography
-          gutterBottom
-          variant="body1"
-          sx={{ textAlign: "center", mb: 3, color: "text.secondary" }}
-        >
-          Enter your card details to complete the payment of{" "}
-          <strong>${totalAmount.toFixed(2)}</strong>.
+        <Typography gutterBottom variant="body1" sx={{ textAlign: "center", mb: 3, color: "text.secondary" }}>
+          Enter your card details to complete the payment of <strong>${totalAmount.toFixed(2)}</strong>.
         </Typography>
 
         <Box component="form" noValidate autoComplete="off" sx={{ mt: 1 }}>

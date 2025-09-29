@@ -20,6 +20,7 @@ const Navbar = () => {
     const parsedUser = storedUser ? JSON.parse(storedUser) : null;
     setUser(parsedUser);
     console.log('Current user:', parsedUser?.name);
+    console.log('Current Email:', parsedUser?.email);
   }, [location]);
 
   // Close dropdown when clicking outside
