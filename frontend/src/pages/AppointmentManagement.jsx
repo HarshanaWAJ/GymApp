@@ -80,7 +80,7 @@ function monthKey(dateObj) {
 }
 
 function AppointmentManagement() {
-  const sidebarWidth = 200;
+  const sidebarWidth = 10;
 
   const [bookings, setBookings] = useState([]);
   const [chartData, setChartData] = useState([]);

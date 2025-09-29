@@ -15,7 +15,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import Swal from 'sweetalert2';
 
 function ProductManagement() {
-  const sidebarWidth = 200;
+  const sidebarWidth = 100;
   const dashboardContentStyle = {
     padding: '20px',
     marginLeft: window.innerWidth >= 768 ? `${sidebarWidth}px` : '0',

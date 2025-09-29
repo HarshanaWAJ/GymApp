@@ -183,8 +183,7 @@ function PurchaseHistory() {
     
     return (
         <div>
-            <UserStoreSidebar />
-            <main style={dashboardContentStyle}>
+            <main style={{margin: '50px'}}>
                 <h2 style={{ marginBottom: '20px', color: '#333' }}>Purchase History</h2>
 
                 {/* PDF Download Button */}
@@ -253,72 +252,87 @@ function PurchaseHistory() {
 }
 
 const styles = {
-    table: {
-        width: '100%',
-        borderCollapse: 'collapse',
-        backgroundColor: '#fff',
-        borderRadius: '6px',
-        overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-        tableLayout: 'auto',
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    backgroundColor: '#fff',
+    borderRadius: '6px',
+    overflow: 'hidden',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)', // Slightly stronger shadow for better contrast
+    tableLayout: 'fixed', // Fixed layout to prevent stretching of columns
+    wordWrap: 'break-word', // Break long text inside cells
+  },
+  th: {
+    borderBottom: '2px solid #ccc', // Slightly darker border for header
+    padding: '12px 15px',
+    backgroundColor: '#f5f5f5',
+    textAlign: 'left',
+    fontWeight: '600',
+    color: '#333',
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+  },
+  td: {
+    borderBottom: '1px solid #eee',
+    padding: '12px 15px',
+    color: '#555',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis', // Ellipsis for overflow text
+  },
+  row: {
+    transition: 'background-color 0.25s ease-in-out',
+    cursor: 'default',
+    // Hover effect to highlight rows (optional, remove if not needed)
+    ':hover': {
+      backgroundColor: '#f9f9f9',
     },
-    th: {
-        borderBottom: '1px solid #ddd',
-        padding: '12px',
-        backgroundColor: '#f4f4f4',
-        textAlign: 'left',
-        fontWeight: 'bold',
-        color: '#333',
-        whiteSpace: 'nowrap',
-    },
-    td: {
-        borderBottom: '1px solid #eee',
-        padding: '12px',
-        color: '#555',
-        whiteSpace: 'nowrap',
-    },
-    row: {
-        transition: 'background-color 0.2s ease-in-out',
-    },
-    groupByTabs: {
-        display: 'flex',
-        gap: '10px',
-        marginBottom: '20px',
-    },
-    tabButton: {
-        padding: '8px 16px',
-        backgroundColor: '#e0e0e0',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontWeight: '500',
-        color: '#333',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        transition: 'all 0.2s ease-in-out',
-    },
-    activeTab: {
-        backgroundColor: '#4CAF50',
-        color: '#fff',
-    },
-    icon: {
-        fontSize: '18px',
-    },
-    message: {
-        padding: '1rem',
-        backgroundColor: '#fefefe',
-        borderRadius: '6px',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-        color: '#555',
-    },
-    monthHeading: {
-        marginBottom: '10px',
-        fontSize: '1.1rem',
-        color: '#444',
-        borderBottom: '1px solid #ddd',
-        paddingBottom: '4px',
-    },
+  },
+  groupByTabs: {
+    display: 'flex',
+    gap: '12px',
+    marginBottom: '24px',
+    flexWrap: 'wrap', // Wrap tabs on smaller screens
+  },
+  tabButton: {
+    padding: '10px 20px',
+    backgroundColor: '#e0e0e0',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    color: '#333',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    transition: 'background-color 0.3s ease, color 0.3s ease',
+    userSelect: 'none',
+  },
+  activeTab: {
+    backgroundColor: '#4caf50',
+    color: '#fff',
+    boxShadow: '0 2px 8px rgba(76, 175, 80, 0.4)',
+  },
+  icon: {
+    fontSize: '20px',
+  },
+  message: {
+    padding: '1.2rem 1rem',
+    backgroundColor: '#fefefe',
+    borderRadius: '8px',
+    boxShadow: '0 1px 6px rgba(0,0,0,0.1)',
+    color: '#555',
+    fontSize: '1rem',
+    textAlign: 'center',
+  },
+  monthHeading: {
+    marginBottom: '14px',
+    fontSize: '1.25rem',
+    color: '#333',
+    borderBottom: '2px solid #ddd',
+    paddingBottom: '6px',
+  },
 };
+
 
 export default PurchaseHistory;

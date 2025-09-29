@@ -52,7 +52,7 @@ const sentimentLabels = {
 };
 
 function AdminReviews() {
-  const sidebarWidth = 200;
+  const sidebarWidth = 10;
 
   const [reviews, setReviews] = useState([]);
   const [filteredReviews, setFilteredReviews] = useState([]);

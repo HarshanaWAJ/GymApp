@@ -12,7 +12,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 
 
 function StoreAdminDashboard() {
-  const sidebarWidth = 200;
+  const sidebarWidth = 100;
   const [userCount, setUserCount] = useState(null);
   const [productCount, setProductCount] = useState(null);
   const [productCategoryCount, setProductCategoryCount] = useState(null);

@@ -44,7 +44,7 @@ function SalesHistory() {
   const [comparisonMode, setComparisonMode] = useState('monthly');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const sidebarWidth = 200;
+  const sidebarWidth = 10;
 
   useEffect(() => {
     const fetchSales = async () => {

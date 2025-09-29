@@ -27,7 +27,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 
 function TrainerManagement() {
-  const sidebarWidth = 200;
+  const sidebarWidth = 10;
   const navigate = useNavigate();
 
   const [trainers, setTrainers] = useState([]);

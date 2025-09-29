@@ -728,8 +728,7 @@ function UserDashboard() {
 
   return (
     <div className="bootstrap-scope">
-      <UserStoreDashboard />
-      <Box sx={{...dashboardContentStyle, pt: isMobile ? '80px' : '24px'}}>
+      <Box sx={{margin: '50px'}}>
         <Container maxWidth="xl" sx={{ py: 3 }}>
           {/* Header Section */}
           <Paper 
@@ -737,7 +736,7 @@ function UserDashboard() {
             sx={{ 
               p: 3, 
               mb: 3, 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #f35b89ff 0%, #b82d2dff 100%)',
               color: 'white',
               borderRadius: 2
             }}
