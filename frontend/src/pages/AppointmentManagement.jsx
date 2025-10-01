@@ -1,4 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 import {
   Box,
   Typography,
@@ -23,6 +26,7 @@ import {
   TextField,
   InputAdornment,
 } from '@mui/material';
+
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import StoreAdminSidebar from '../components/StoreAdminSidebar';
@@ -215,6 +219,138 @@ function AppointmentManagement() {
     );
   }, [bookings, searchTerm]);
 
+  // --- PDF Export Handler (improved styling) ---
+  const handleDownloadPdf = () => {
+    const doc = new jsPDF();
+
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(40);
+    doc.text('Appointment Management Report', 14, 20);
+
+    // Summary header
+    doc.setFontSize(14);
+    doc.setTextColor(60);
+    doc.text('Total Appointment Counts by Status', 14, 30);
+
+    const summaryData = Object.entries(totalStatusCounts).map(([status, count]) => [
+      status.charAt(0).toUpperCase() + status.slice(1),
+      count.toString(),
+    ]);
+
+    autoTable(doc, {
+      startY: 34,
+      head: [['Status', 'Count']],
+      body: summaryData,
+      theme: 'grid',
+      styles: {
+        halign: 'center',
+        fontSize: 10,
+        cellPadding: 4,
+      },
+      headStyles: {
+        fillColor: [63, 81, 181], // Indigo-ish
+        textColor: 255,
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        textColor: 50,
+      },
+    });
+
+    const summaryEndY = doc.lastAutoTable.finalY;
+
+    // Bookings Table header
+    const sectionHeaderY = summaryEndY + 10;
+    doc.setFontSize(14);
+    doc.setTextColor(60);
+    doc.text('Bookings in Last 6 Months', 14, sectionHeaderY);
+
+    const tableColumn = [
+      'Trainer',
+      'Time Slot',
+      'Client',
+      'Contact',
+      'Status',
+      'Booking Date',
+    ];
+
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+
+    const filteredLast6Months = bookings.filter((b) => {
+      const dateStr = b.createdAt || b.updatedAt;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      return d >= new Date(sixMonthsAgo.getFullYear(), sixMonthsAgo.getMonth(), 1);
+    });
+
+    const tableRows = filteredLast6Months.map((b) => {
+      const dayTime = b.slotId
+        ? `${b.slotId.day} ${b.slotId.startTime} - ${b.slotId.endTime}`
+        : 'N/A';
+
+      const bookingDate = b.createdAt
+        ? new Date(b.createdAt).toLocaleDateString()
+        : 'N/A';
+
+      // Combine phone & email
+      const contact = [
+        b.clientContact?.phone || '',
+        b.clientContact?.email || '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      return [
+        b.trainerId?.name || 'N/A',
+        dayTime,
+        b.clientName || '',
+        contact,
+        b.status.charAt(0).toUpperCase() + b.status.slice(1),
+        bookingDate,
+      ];
+    });
+
+    autoTable(doc, {
+      startY: sectionHeaderY + 4,
+      head: [tableColumn],
+      body: tableRows,
+      theme: 'striped',
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+        valign: 'middle',
+      },
+      headStyles: {
+        fillColor: [63, 81, 181],
+        textColor: 255,
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        textColor: 50,
+      },
+      columnStyles: {
+        3: { cellWidth: 45 }, // Contact column
+        1: { cellWidth: 30 }, // Time Slot
+        0: { cellWidth: 30 }, // Trainer
+      },
+      didDrawPage: (data) => {
+        // footer with generation date
+        doc.setFontSize(10);
+        doc.setTextColor(150);
+        const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+        doc.text(
+          `Generated: ${new Date().toLocaleDateString()}`,
+          14,
+          pageHeight - 10
+        );
+      },
+    });
+
+    doc.save('Appointment_Report.pdf');
+  };
+
   return (
     <Box sx={{ display: 'flex' }}>
       <StoreAdminSidebar />
@@ -232,106 +368,13 @@ function AppointmentManagement() {
           Appointment Management
         </Typography>
 
-        {/* Charts */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            gap: 3,
-            mb: 4,
-          }}
-        >
-          {/* Bar Chart */}
-          <Box
-            sx={{
-              flex: 1,
-              height: 350,
-              backgroundColor: 'white',
-              p: 3,
-              borderRadius: 2,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              '&:hover': {
-                boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-              },
-            }}
-          >
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: '600' }}>
-              Bookings by Status ‒ Last 6 Months
-            </Typography>
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="monthLabel" />
-                  <YAxis allowDecimals={false} />
-                  <ReTooltip />
-                  <Legend />
-                  <Bar dataKey="pending" stackId="a" fill={PIE_COLORS.pending} />
-                  <Bar dataKey="confirmed" stackId="a" fill={PIE_COLORS.confirmed} />
-                  <Bar dataKey="cancelled" stackId="a" fill={PIE_COLORS.cancelled} />
-                  <Bar dataKey="completed" stackId="a" fill={PIE_COLORS.completed} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <Typography>No bookings in last 6 months.</Typography>
-            )}
-          </Box>
-
-          {/* Pie Chart */}
-          <Box
-            sx={{
-              flex: 1,
-              height: 350,
-              backgroundColor: 'white',
-              p: 3,
-              borderRadius: 2,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              '&:hover': {
-                boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-              },
-            }}
-          >
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: '600' }}>
-              Current Month Booking Status
-            </Typography>
-            {Object.values(currentMonthStatus).some((c) => c > 0) ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    dataKey="value"
-                    isAnimationActive={false}
-                    data={Object.entries(currentMonthStatus).map(([key, value]) => ({
-                      name: key.charAt(0).toUpperCase() + key.slice(1),
-                      value,
-                    }))}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label
-                  >
-                    {Object.keys(currentMonthStatus).map((key, idx) => (
-                      <Cell key={`cell-${idx}`} fill={PIE_COLORS[key]} />
-                    ))}
-                  </Pie>
-                  <PieTooltip />
-                  <PieLegend verticalAlign="bottom" />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <Typography>No bookings this month.</Typography>
-            )}
-          </Box>
+        <Box sx={{ mb: 3 }}>
+          <Button variant="contained" onClick={handleDownloadPdf}>
+            Download Report as PDF
+          </Button>
         </Box>
 
-        {/* Total Appointment Counts by Status as Cards */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 2,
-            mb: 4,
-          }}
-        >
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 4 }}>
           {Object.entries(totalStatusCounts).map(([status, count]) => (
             <Paper
               key={status}
@@ -373,128 +416,185 @@ function AppointmentManagement() {
           ))}
         </Box>
 
-        {/* Search */}
-        <Box sx={{ mb: 2, maxWidth: 400 }}>
-          <TextField
-            label="Search by Client Name"
-            variant="outlined"
-            size="small"
-            fullWidth
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="action" />
-                </InputAdornment>
-              ),
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, mb: 4 }}>
+          <Box sx={{ flex: 1, height: 300, p: 2, borderRadius: 2, backgroundColor: '#fff', boxShadow: 1 }}>
+            <Typography variant="h6" gutterBottom sx={{ textAlign: 'center', fontWeight: 'bold' }}>
+              Appointments Status Over Last 6 Months
+            </Typography>
+            <ResponsiveContainer width="100%" height="90%">
+              <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="monthLabel" />
+                <YAxis allowDecimals={false} />
+                <ReTooltip />
+                <Legend verticalAlign="top" height={36} />
+                <Bar dataKey="pending" stackId="a" fill={PIE_COLORS.pending} />
+                <Bar dataKey="confirmed" stackId="a" fill={PIE_COLORS.confirmed} />
+                <Bar dataKey="cancelled" stackId="a" fill={PIE_COLORS.cancelled} />
+                <Bar dataKey="completed" stackId="a" fill={PIE_COLORS.completed} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Box>
+
+          <Box
+            sx={{
+              flex: '0 0 300px',
+              height: 300,
+              p: 2,
+              borderRadius: 2,
+              backgroundColor: '#fff',
+              boxShadow: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
             }}
-          />
+          >
+            <Typography variant="h6" gutterBottom sx={{ textAlign: 'center', fontWeight: 'bold' }}>
+              Current Month Status Distribution
+            </Typography>
+            <ResponsiveContainer width="100%" height="85%">
+              <PieChart>
+                <Pie
+                  data={Object.entries(currentMonthStatus).map(([status, value]) => ({
+                    name: status.charAt(0).toUpperCase() + status.slice(1),
+                    value,
+                  }))}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                >
+                  {Object.keys(currentMonthStatus).map((status, idx) => (
+                    <Cell key={idx} fill={PIE_COLORS[status]} />
+                  ))}
+                </Pie>
+                <PieTooltip />
+                <PieLegend verticalAlign="bottom" height={36} />
+              </PieChart>
+            </ResponsiveContainer>
+          </Box>
         </Box>
 
-        {/* Table */}
-        {loading ? (
-          <Typography>Loading appointments...</Typography>
-        ) : error ? (
-          <Alert severity="error">{error}</Alert>
-        ) : filteredBookings.length === 0 ? (
-          <Alert severity="info">
-            No appointments found{searchTerm ? ' matching your search.' : '.'}
-          </Alert>
-        ) : (
-          <TableContainer component={Paper} elevation={3} sx={{ borderRadius: 2, overflow: 'hidden' }}>
-            <Table stickyHeader>
-              <TableHead sx={{ backgroundColor: '#1976d2' }}>
+        <TextField
+          label="Search by Client Name"
+          variant="outlined"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          size="small"
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ mb: 2, maxWidth: 300 }}
+        />
+
+        <TableContainer component={Paper} sx={{ maxHeight: 500 }}>
+          <Table stickyHeader size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Trainer</TableCell>
+                <TableCell>Time Slot</TableCell>
+                <TableCell>Client</TableCell>
+                <TableCell>Contact</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Booking Date</TableCell>
+                <TableCell align="center">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
                 <TableRow>
-                  <TableCell sx={{ color: 'white', fontWeight: '600' }}>Trainer</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: '600' }}>Time Slot</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: '600' }}>Client</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: '600' }}>Contact</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: '600' }}>Status</TableCell>
-                  <TableCell align="center" sx={{ color: 'white', fontWeight: '600' }}>
-                    Actions
+                  <TableCell colSpan={7} align="center">
+                    Loading...
                   </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredBookings.map((booking) => {
-                  const { _id, trainerId, slotId, clientName, clientContact, status } = booking;
-                  const dayTime = slotId
-                    ? `${slotId.day} ${slotId.startTime} - ${slotId.endTime}`
-                    : 'N/A';
-                  return (
-                    <TableRow key={_id} hover sx={{ '&:hover': { backgroundColor: '#e3f2fd' } }}>
-                      <TableCell>{trainerId?.name || 'N/A'}</TableCell>
-                      <TableCell>{dayTime}</TableCell>
-                      <TableCell>{clientName}</TableCell>
-                      <TableCell>
-                        {clientContact?.phone || 'N/A'}
-                        <br />
-                        {clientContact?.email || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={status}
-                          size="small"
-                          onChange={(e) => handleStatusChange(_id, e.target.value)}
-                          sx={{ minWidth: 140 }}
-                        >
-                          {['pending', 'confirmed', 'cancelled', 'completed'].map((stat) => (
-                            <MenuItem key={stat} value={stat}>
-                              <Typography
-                                sx={{
-                                  color: PIE_COLORS[stat],
-                                  fontWeight: '600',
-                                  textTransform: 'capitalize',
-                                }}
-                              >
-                                {stat}
-                              </Typography>
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Delete Booking">
-                          <IconButton color="error" onClick={() => handleOpenDelete(booking)}>
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ color: 'red' }}>
+                    {error}
+                  </TableCell>
+                </TableRow>
+              ) : filteredBookings.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    No bookings found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredBookings.map((booking) => (
+                  <TableRow key={booking._id} hover>
+                    <TableCell>{booking.trainerId?.name || 'N/A'}</TableCell>
+                    <TableCell>
+                      {booking.slotId
+                        ? `${booking.slotId.day} ${booking.slotId.startTime} - ${booking.slotId.endTime}`
+                        : 'N/A'}
+                    </TableCell>
+                    <TableCell>{booking.clientName}</TableCell>
+                    <TableCell>
+                      {booking.clientContact?.phone || 'N/A'}
+                      <br />
+                      {booking.clientContact?.email || 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={booking.status}
+                        onChange={(e) => handleStatusChange(booking._id, e.target.value)}
+                        size="small"
+                        sx={{ minWidth: 110, textTransform: 'capitalize' }}
+                      >
+                        {['pending', 'confirmed', 'cancelled', 'completed'].map((status) => (
+                          <MenuItem key={status} value={status}>
+                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      {booking.createdAt
+                        ? new Date(booking.createdAt).toLocaleDateString()
+                        : 'N/A'}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="Delete Booking">
+                        <IconButton onClick={() => handleOpenDelete(booking)} color="error" size="small">
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-        {/* Delete Confirmation Dialog */}
         <Dialog open={deleteDialogOpen} onClose={handleCloseDelete}>
-          <DialogTitle>Confirm Deletion</DialogTitle>
+          <DialogTitle>Confirm Delete</DialogTitle>
           <DialogContent>
             Are you sure you want to delete the booking for{' '}
             <strong>{deletingBooking?.clientName}</strong>?
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCloseDelete} color="primary">
-              Cancel
-            </Button>
+            <Button onClick={handleCloseDelete}>Cancel</Button>
             <Button onClick={handleDeleteBooking} color="error" variant="contained">
               Delete
             </Button>
           </DialogActions>
         </Dialog>
 
-        {/* Snackbar Notifications */}
         <Snackbar
           open={snackbar.open}
-          autoHideDuration={4000}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          autoHideDuration={3000}
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
           <Alert
-            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
             severity={snackbar.severity}
             sx={{ width: '100%' }}
           >
