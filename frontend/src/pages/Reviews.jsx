@@ -150,8 +150,8 @@ function Reviews() {
   const getSentimentLabel = (comment) => {
     if (!comment) return 'Neutral';
     const result = sentimentAnalyzer.analyze(comment);
-    if (result.score > 0) return 'Positive';
-    if (result.score < 0) return 'Negative';
+    if (result.score > 0.2) return 'Positive';
+    if (result.score < -0.2) return 'Negative';
     return 'Neutral';
   };
 

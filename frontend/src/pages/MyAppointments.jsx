@@ -30,28 +30,35 @@ import {
   Fade,
   Tooltip,
   ListItemAvatar,
-  LinearProgress,
-  Skeleton,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  TextField,
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import PersonIcon from '@mui/icons-material/Person';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import StarIcon from '@mui/icons-material/Star';
-import AlarmIcon from '@mui/icons-material/Alarm';
-import EventNoteIcon from '@mui/icons-material/EventNote';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import PendingIcon from '@mui/icons-material/Pending';
-import CancelIcon from '@mui/icons-material/Cancel';
-import ScheduleIcon from '@mui/icons-material/Schedule';
+import {
+  Close as CloseIcon,
+  Notifications as NotificationsIcon,
+  DeleteOutline as DeleteOutlineIcon,
+  Person as PersonIcon,
+  CalendarToday as CalendarTodayIcon,
+  AccessTime as AccessTimeIcon,
+  FitnessCenter as FitnessCenterIcon,
+  Star as StarIcon,
+  Alarm as AlarmIcon,
+  EventNote as EventNoteIcon,
+  TrendingUp as TrendingUpIcon,
+  CheckCircle as CheckCircleIcon,
+  Pending as PendingIcon,
+  Cancel as CancelIcon,
+  Schedule as ScheduleIcon,
+  Edit as EditIcon,
+} from '@mui/icons-material';
+
 import axiosInstance from '../api/axiosInstance';
 
-// Enhanced appointment card component
-function AppointmentCard({ appointment, onDelete, index }) {
+// AppointmentCard with edit and delete
+function AppointmentCard({ appointment, onDelete, onEdit, index }) {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const handleDelete = async () => {
@@ -67,30 +74,30 @@ function AppointmentCard({ appointment, onDelete, index }) {
 
   const getStatusDetails = (status) => {
     const statusMap = {
-      pending: { 
-        color: '#ff9800', 
+      pending: {
+        color: '#ff9800',
         bgColor: alpha('#ff9800', 0.1),
         icon: <PendingIcon fontSize="small" />,
-        label: 'Pending'
+        label: 'Pending',
       },
-      confirmed: { 
-        color: '#4caf50', 
+      confirmed: {
+        color: '#4caf50',
         bgColor: alpha('#4caf50', 0.1),
         icon: <CheckCircleIcon fontSize="small" />,
-        label: 'Confirmed'
+        label: 'Confirmed',
       },
-      cancelled: { 
-        color: '#f44336', 
+      cancelled: {
+        color: '#f44336',
         bgColor: alpha('#f44336', 0.1),
         icon: <CancelIcon fontSize="small" />,
-        label: 'Cancelled'
+        label: 'Cancelled',
       },
-      completed: { 
-        color: '#2196f3', 
+      completed: {
+        color: '#2196f3',
         bgColor: alpha('#2196f3', 0.1),
         icon: <CheckCircleIcon fontSize="small" />,
-        label: 'Completed'
-      }
+        label: 'Completed',
+      },
     };
     return statusMap[status] || statusMap.pending;
   };
@@ -124,12 +131,11 @@ function AppointmentCard({ appointment, onDelete, index }) {
             right: 0,
             height: 4,
             background: `linear-gradient(90deg, ${statusDetails.color}, ${alpha(statusDetails.color, 0.7)})`,
-            borderRadius: '16px 16px 0 0'
-          }
+            borderRadius: '16px 16px 0 0',
+          },
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          {/* Header with trainer info */}
           <Stack direction="row" spacing={3} alignItems="center" mb={3}>
             <Avatar
               sx={{
@@ -139,27 +145,27 @@ function AppointmentCard({ appointment, onDelete, index }) {
                 fontSize: '1.5rem',
                 fontWeight: 700,
                 border: '3px solid white',
-                boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)'
+                boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
               }}
             >
               {appointment.trainerId?.name?.[0] || 'T'}
             </Avatar>
-            
+
             <Box sx={{ flex: 1 }}>
-              <Typography 
-                variant="h6" 
+              <Typography
+                variant="h6"
                 fontWeight={700}
                 sx={{
                   background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
-                  mb: 0.5
+                  mb: 0.5,
                 }}
               >
                 {appointment.trainerId?.name || 'Unknown Trainer'}
               </Typography>
-              
+
               <Stack direction="row" spacing={2} alignItems="center">
                 <Chip
                   icon={statusDetails.icon}
@@ -169,7 +175,7 @@ function AppointmentCard({ appointment, onDelete, index }) {
                     color: statusDetails.color,
                     fontWeight: 600,
                     border: `1px solid ${alpha(statusDetails.color, 0.3)}`,
-                    '& .MuiChip-icon': { color: statusDetails.color }
+                    '& .MuiChip-icon': { color: statusDetails.color },
                   }}
                 />
                 {isUpcoming && (
@@ -186,8 +192,8 @@ function AppointmentCard({ appointment, onDelete, index }) {
                       '@keyframes pulse': {
                         '0%': { opacity: 1 },
                         '50%': { opacity: 0.7 },
-                        '100%': { opacity: 1 }
-                      }
+                        '100%': { opacity: 1 },
+                      },
                     }}
                   />
                 )}
@@ -195,7 +201,6 @@ function AppointmentCard({ appointment, onDelete, index }) {
             </Box>
           </Stack>
 
-          {/* Appointment details */}
           <Stack spacing={2}>
             <Paper
               elevation={0}
@@ -204,7 +209,7 @@ function AppointmentCard({ appointment, onDelete, index }) {
                 bgcolor: alpha('#1976d2', 0.04),
                 borderRadius: 3,
                 border: '1px solid',
-                borderColor: alpha('#1976d2', 0.12)
+                borderColor: alpha('#1976d2', 0.12),
               }}
             >
               <Grid container spacing={2}>
@@ -219,7 +224,7 @@ function AppointmentCard({ appointment, onDelete, index }) {
                     {appointment.trainerId?.specialization || 'N/A'}
                   </Typography>
                 </Grid>
-                
+
                 <Grid item xs={12} md={6}>
                   <Stack direction="row" spacing={1} alignItems="center" mb={1}>
                     <StarIcon color="warning" fontSize="small" />
@@ -234,7 +239,6 @@ function AppointmentCard({ appointment, onDelete, index }) {
               </Grid>
             </Paper>
 
-            {/* Time and date info */}
             <Stack spacing={2}>
               <Stack direction="row" spacing={1} alignItems="center">
                 <CalendarTodayIcon color="primary" fontSize="small" />
@@ -242,15 +246,21 @@ function AppointmentCard({ appointment, onDelete, index }) {
                   Appointment Date
                 </Typography>
               </Stack>
-              <Typography variant="h6" fontWeight={600} color="primary.dark">
-                {appointmentDate ? appointmentDate.toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                }) : 'Date not available'}
+              <Typography
+                variant="h6"
+                fontWeight={600}
+                color="primary.dark"
+              >
+                {appointmentDate
+                  ? appointmentDate.toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
+                  : 'Date not available'}
               </Typography>
-              
+
               {appointment.slotId && (
                 <>
                   <Stack direction="row" spacing={1} alignItems="center" mt={1}>
@@ -267,8 +277,30 @@ function AppointmentCard({ appointment, onDelete, index }) {
             </Stack>
           </Stack>
         </CardContent>
-        
+
         <CardActions sx={{ px: 3, pb: 3, justifyContent: 'flex-end' }}>
+          <Tooltip title="Edit Appointment">
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<EditIcon />}
+              onClick={() => onEdit(appointment)}
+              sx={{
+                borderRadius: 3,
+                fontWeight: 600,
+                mr: 1,
+                background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #1565c0, #1976d2)',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
+                },
+              }}
+            >
+              Edit
+            </Button>
+          </Tooltip>
+
           <Tooltip title="Delete Appointment">
             <Button
               variant="outlined"
@@ -287,8 +319,8 @@ function AppointmentCard({ appointment, onDelete, index }) {
                 '&:hover': {
                   borderWidth: 2,
                   transform: 'translateY(-2px)',
-                  boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)'
-                }
+                  boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)',
+                },
               }}
             >
               {deleteLoading ? 'Deleting...' : 'Delete'}
@@ -300,32 +332,38 @@ function AppointmentCard({ appointment, onDelete, index }) {
   );
 }
 
-// Enhanced loading skeleton
+// Loading skeleton for card
 function AppointmentSkeleton({ index }) {
   return (
     <Zoom in={true} timeout={300 + index * 100}>
       <Card sx={{ borderRadius: 4, p: 3 }}>
         <Stack direction="row" spacing={3} alignItems="center" mb={3}>
-          <Skeleton variant="circular" width={64} height={64} />
+          <Box sx={{ width: 64, height: 64 }}>
+            <CircularProgress />
+          </Box>
           <Box sx={{ flex: 1 }}>
-            <Skeleton variant="text" width="60%" height={32} />
-            <Skeleton variant="text" width="40%" height={24} />
+            <Box sx={{ height: 32, width: '60%', backgroundColor: '#eee', mb: 1 }} />
+            <Box sx={{ height: 24, width: '40%', backgroundColor: '#eee' }} />
           </Box>
         </Stack>
-        <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 3, mb: 2 }} />
-        <Skeleton variant="text" width="80%" height={24} />
-        <Skeleton variant="text" width="60%" height={24} />
+        <Box sx={{ height: 120, backgroundColor: '#eee', borderRadius: 3, mb: 2 }} />
+        <Box sx={{ height: 24, width: '80%', backgroundColor: '#eee', mb: 1 }} />
+        <Box sx={{ height: 24, width: '60%', backgroundColor: '#eee' }} />
       </Card>
     </Zoom>
   );
 }
 
+// The main MyAppointments component
 function MyAppointments() {
   const [user, setUser] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [notifOpen, setNotifOpen] = useState(false);
+
+  // For editing
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -362,8 +400,20 @@ function MyAppointments() {
       await axiosInstance.delete(`/bookings/${bookingId}`);
       setAppointments((prev) => prev.filter((a) => a._id !== bookingId));
     } catch (err) {
-      throw new Error('Failed to delete appointment');
+      console.error('Delete error', err);
+      throw err;
     }
+  };
+
+  const handleEditClick = (appointment) => {
+    setEditingAppointment(appointment);
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdated = (updatedAppt) => {
+    setAppointments((prev) =>
+      prev.map((a) => (a._id === updatedAppt._id ? { ...a, ...updatedAppt } : a))
+    );
   };
 
   const getUpcomingAppointments = () => {
@@ -380,19 +430,20 @@ function MyAppointments() {
 
   const upcomingAppointments = getUpcomingAppointments();
   const totalAppointments = appointments.length;
-  const completedAppointments = appointments.filter(a => a.status === 'completed').length;
-  const upcomingCount = appointments.filter(a => {
+  const completedAppointments = appointments.filter((a) => a.status === 'completed').length;
+  const upcomingCount = appointments.filter((a) => {
     const apptDate = new Date(a.date);
     return apptDate > new Date() && a.status !== 'cancelled';
   }).length;
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-      position: 'relative'
-    }}>
-      {/* Background decoration */}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+        position: 'relative',
+      }}
+    >
       <Box
         sx={{
           position: 'absolute',
@@ -402,37 +453,35 @@ function MyAppointments() {
           height: 300,
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           opacity: 0.1,
-          zIndex: 0
+          zIndex: 0,
         }}
       />
 
       <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, py: 4 }}>
-        {/* Enhanced header */}
         <Fade in timeout={600}>
           <Box sx={{ mb: 6 }}>
-            <Typography 
-              variant="h3" 
-              fontWeight={800} 
-              sx={{ 
+            <Typography
+              variant="h3"
+              fontWeight={800}
+              sx={{
                 mb: 2,
                 background: 'linear-gradient(45deg, #1976d2, #42a5f5, #1e88e5)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
-                textAlign: 'center'
+                textAlign: 'center',
               }}
             >
               📅 My Fitness Journey
             </Typography>
-            <Typography 
-              variant="h6" 
-              color="text.secondary" 
+            <Typography
+              variant="h6"
+              color="text.secondary"
               sx={{ textAlign: 'center', mb: 4, maxWidth: 600, mx: 'auto' }}
             >
               Track your appointments, monitor progress, and stay on top of your fitness schedule
             </Typography>
 
-            {/* Stats cards */}
             {!loading && totalAppointments > 0 && (
               <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid item xs={12} md={4}>
@@ -445,19 +494,17 @@ function MyAppointments() {
                       color: 'white',
                       textAlign: 'center',
                       transition: 'transform 0.3s',
-                      '&:hover': { transform: 'translateY(-4px)' }
+                      '&:hover': { transform: 'translateY(-4px)' },
                     }}
                   >
                     <EventNoteIcon sx={{ fontSize: 40, mb: 1 }} />
                     <Typography variant="h4" fontWeight={700}>
                       {totalAppointments}
                     </Typography>
-                    <Typography variant="body1">
-                      Total Sessions
-                    </Typography>
+                    <Typography variant="body1">Total Sessions</Typography>
                   </Paper>
                 </Grid>
-                
+
                 <Grid item xs={12} md={4}>
                   <Paper
                     elevation={8}
@@ -468,19 +515,17 @@ function MyAppointments() {
                       color: 'white',
                       textAlign: 'center',
                       transition: 'transform 0.3s',
-                      '&:hover': { transform: 'translateY(-4px)' }
+                      '&:hover': { transform: 'translateY(-4px)' },
                     }}
                   >
                     <TrendingUpIcon sx={{ fontSize: 40, mb: 1 }} />
                     <Typography variant="h4" fontWeight={700}>
                       {completedAppointments}
                     </Typography>
-                    <Typography variant="body1">
-                      Completed
-                    </Typography>
+                    <Typography variant="body1">Completed</Typography>
                   </Paper>
                 </Grid>
-                
+
                 <Grid item xs={12} md={4}>
                   <Paper
                     elevation={8}
@@ -491,16 +536,14 @@ function MyAppointments() {
                       color: 'white',
                       textAlign: 'center',
                       transition: 'transform 0.3s',
-                      '&:hover': { transform: 'translateY(-4px)' }
+                      '&:hover': { transform: 'translateY(-4px)' },
                     }}
                   >
                     <ScheduleIcon sx={{ fontSize: 40, mb: 1 }} />
                     <Typography variant="h4" fontWeight={700}>
                       {upcomingCount}
                     </Typography>
-                    <Typography variant="body1">
-                      Upcoming
-                    </Typography>
+                    <Typography variant="body1">Upcoming</Typography>
                   </Paper>
                 </Grid>
               </Grid>
@@ -508,7 +551,6 @@ function MyAppointments() {
           </Box>
         </Fade>
 
-        {/* Loading state */}
         {loading && (
           <Grid container spacing={3}>
             {[1, 2, 3, 4].map((i) => (
@@ -519,42 +561,38 @@ function MyAppointments() {
           </Grid>
         )}
 
-        {/* Error state */}
         {error && (
           <Fade in>
-            <Paper 
+            <Paper
               elevation={4}
-              sx={{ 
-                p: 4, 
+              sx={{
+                p: 4,
                 textAlign: 'center',
                 bgcolor: alpha('#f44336', 0.04),
                 border: '1px solid',
                 borderColor: alpha('#f44336', 0.2),
-                borderRadius: 4
+                borderRadius: 4,
               }}
             >
               <Typography color="error" variant="h6" gutterBottom>
                 ❌ Oops! Something went wrong
               </Typography>
-              <Typography color="text.secondary">
-                {error}
-              </Typography>
+              <Typography color="text.secondary">{error}</Typography>
             </Paper>
           </Fade>
         )}
 
-        {/* No appointments state */}
         {!loading && !error && appointments.length === 0 && (
           <Fade in>
-            <Paper 
+            <Paper
               elevation={8}
-              sx={{ 
-                p: 6, 
+              sx={{
+                p: 6,
                 textAlign: 'center',
                 bgcolor: alpha('#2196f3', 0.04),
                 border: '1px solid',
                 borderColor: alpha('#2196f3', 0.2),
-                borderRadius: 4
+                borderRadius: 4,
               }}
             >
               <CalendarTodayIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 3 }} />
@@ -564,8 +602,8 @@ function MyAppointments() {
               <Typography color="text.secondary" sx={{ mb: 3, fontSize: '1.1rem' }}>
                 You haven't booked any appointments yet. Ready to take the first step?
               </Typography>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 size="large"
                 sx={{
                   borderRadius: 3,
@@ -576,8 +614,8 @@ function MyAppointments() {
                   '&:hover': {
                     background: 'linear-gradient(135deg, #1565c0, #1976d2)',
                     transform: 'translateY(-2px)',
-                    boxShadow: '0 8px 25px rgba(25, 118, 210, 0.3)'
-                  }
+                    boxShadow: '0 8px 25px rgba(25, 118, 210, 0.3)',
+                  },
                 }}
               >
                 Book Your First Session
@@ -586,7 +624,6 @@ function MyAppointments() {
           </Fade>
         )}
 
-        {/* Appointments grid */}
         {!loading && !error && appointments.length > 0 && (
           <Grid container spacing={3}>
             {appointments.map((appointment, index) => (
@@ -594,6 +631,7 @@ function MyAppointments() {
                 <AppointmentCard
                   appointment={appointment}
                   onDelete={handleDelete}
+                  onEdit={handleEditClick}
                   index={index}
                 />
               </Grid>
@@ -601,13 +639,12 @@ function MyAppointments() {
           </Grid>
         )}
 
-        {/* Enhanced floating notification */}
         {(upcomingAppointments.length > 0 || true) && (
           <Tooltip title="View Upcoming Notifications" arrow>
             <Badge badgeContent={upcomingAppointments.length} color="error">
               <Fab
                 color="primary"
-                onClick={() => setNotifOpen(true)}
+                onClick={() => setEditDialogOpen(false)}
                 sx={{
                   position: 'fixed',
                   bottom: 32,
@@ -617,8 +654,8 @@ function MyAppointments() {
                   boxShadow: '0 8px 25px rgba(25, 118, 210, 0.4)',
                   '&:hover': {
                     transform: 'scale(1.1)',
-                    boxShadow: '0 12px 35px rgba(25, 118, 210, 0.5)'
-                  }
+                    boxShadow: '0 12px 35px rgba(25, 118, 210, 0.5)',
+                  },
                 }}
               >
                 <NotificationsIcon />
@@ -626,134 +663,124 @@ function MyAppointments() {
             </Badge>
           </Tooltip>
         )}
+      </Container>
 
-        {/* Enhanced notification dialog */}
-        <Dialog
-          open={notifOpen}
-          onClose={() => setNotifOpen(false)}
-          maxWidth="sm"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 4,
-              background: 'linear-gradient(135deg, #ffffff 0%, #f8faff 100%)'
-            }
-          }}
+      {/* Edit Appointment Dialog */}
+      <EditAppointmentDialog
+        open={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        appointment={editingAppointment}
+        onUpdated={handleUpdated}
+      />
+    </Box>
+  );
+}
+
+// EditAppointmentDialog defined inside the same file (or you can move it to a separate file)
+function EditAppointmentDialog({ open, onClose, appointment, onUpdated }) {
+  const [form, setForm] = useState(appointment || {});
+  const [slots, setSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    if (appointment) {
+      setForm(appointment);
+      // Fetch slots
+      if (appointment.trainerId?._id) {
+        fetchSlots(appointment.trainerId._id);
+      }
+    }
+  }, [appointment]);
+
+  const fetchSlots = async (trainerId) => {
+    setLoadingSlots(true);
+    try {
+      const res = await axiosInstance.get(`/timeslots/${trainerId}`);
+      setSlots(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch slots:', err);
+      setSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!form._id) return;
+    setUpdating(true);
+    try {
+      const payload = {
+        slotId: form.slotId?._id || form.slotId,
+        date: form.date,
+        // you can also allow updating status
+        status: form.status || appointment.status,
+      };
+      await axiosInstance.put(`/bookings/status/${form._id}`, payload);
+      onUpdated({ ...form, ...payload });
+      onClose();
+    } catch (err) {
+      console.error('Update failed:', err);
+      alert('Failed to update the appointment. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        Edit Appointment
+        <IconButton
+          onClick={onClose}
+          sx={{ position: 'absolute', top: 12, right: 12 }}
         >
-          <DialogTitle sx={{ pb: 1 }}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between">
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <NotificationsIcon color="primary" sx={{ fontSize: 32 }} />
-                <Typography variant="h5" fontWeight={700}>
-                  🚨 Upcoming Sessions
-                </Typography>
-              </Stack>
-              <IconButton
-                onClick={() => setNotifOpen(false)}
-                sx={{ 
-                  bgcolor: alpha('#1976d2', 0.1),
-                  '&:hover': { bgcolor: alpha('#1976d2', 0.2) }
-                }}
-              >
-                <CloseIcon />
-              </IconButton>
-            </Stack>
-          </DialogTitle>
-          
-          <DialogContent dividers sx={{ px: 0 }}>
-            {upcomingAppointments.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <AlarmIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary">
-                  🎉 All Clear!
-                </Typography>
-                <Typography color="text.secondary">
-                  No appointments within the next hour.
-                </Typography>
-              </Box>
-            ) : (
-              <List sx={{ px: 0 }}>
-                {upcomingAppointments.map((appt, index) => {
-                  const [hours, minutes] = appt.slotId.startTime.split(':');
-                  const apptDate = new Date(appt.date);
-                  apptDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={3}>
+          <TextField
+            label="Date"
+            type="date"
+            fullWidth
+            value={form.date ? form.date.slice(0, 10) : ''}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, date: e.target.value }))
+            }
+            InputLabelProps={{ shrink: true }}
+          />
 
-                  return (
-                    <ListItem 
-                      key={appt._id} 
-                      sx={{
-                        py: 2,
-                        px: 3,
-                        '&:hover': { bgcolor: alpha('#1976d2', 0.04) }
-                      }}
-                    >
-                      <ListItemAvatar>
-                        <Avatar
-                          sx={{
-                            background: 'linear-gradient(135deg, #ff9800, #ffb74d)',
-                            fontWeight: 700
-                          }}
-                        >
-                          {appt.trainerId?.name?.[0] || 'T'}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={
-                          <Typography variant="subtitle1" fontWeight={600}>
-                            🏋️‍♂️ {appt.trainerId?.name || 'Unknown Trainer'}
-                          </Typography>
-                        }
-                        secondary={
-                          <Stack spacing={0.5} sx={{ mt: 1 }}>
-                            <Typography variant="body2" color="text.secondary">
-                              📅 {apptDate.toLocaleDateString()} at {apptDate.toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </Typography>
-                            <Chip
-                              label={appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
-                              size="small"
-                              sx={{
-                                bgcolor: alpha('#4caf50', 0.1),
-                                color: '#4caf50',
-                                fontWeight: 600,
-                                width: 'fit-content'
-                              }}
-                            />
-                          </Stack>
-                        }
-                      />
-                    </ListItem>
-                  );
-                })}
-              </List>
-            )}
-          </DialogContent>
-          
-          <DialogActions sx={{ p: 3 }}>
-            <Button 
-              onClick={() => setNotifOpen(false)} 
-              variant="contained"
-              size="large"
-              sx={{
-                borderRadius: 3,
-                fontWeight: 600,
-                px: 4,
-                background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #1565c0, #1976d2)',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 6px 20px rgba(25, 118, 210, 0.3)'
-                }
+          <FormControl fullWidth disabled={loadingSlots}>
+            <InputLabel>Select Time Slot</InputLabel>
+            <Select
+              value={form.slotId?._id || form.slotId || ''}
+              label="Select Time Slot"
+              onChange={(e) => {
+                const selected = slots.find((s) => s._id === e.target.value);
+                setForm((prev) => ({ ...prev, slotId: selected }));
               }}
             >
-              Got it! 👍
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Container>
-    </Box>
+              {slots.map((slot) => (
+                <MenuItem key={slot._id} value={slot._id}>
+                  {slot.day} • {slot.startTime} - {slot.endTime}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button
+          variant="contained"
+          onClick={handleSave}
+          disabled={updating || loadingSlots}
+        >
+          {updating ? <CircularProgress size={18} /> : 'Update'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
