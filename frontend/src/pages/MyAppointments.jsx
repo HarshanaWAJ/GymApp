@@ -384,6 +384,8 @@ function MyAppointments() {
       try {
         const res = await axiosInstance.get('/bookings');
         const filtered = res.data.filter((b) => b.clientName === user.name);
+        console.log('Fetched appointments:', filtered);
+        
         setAppointments(filtered);
       } catch (err) {
         setError('Failed to load appointments.');
@@ -706,26 +708,33 @@ function EditAppointmentDialog({ open, onClose, appointment, onUpdated }) {
     }
   };
 
-  const handleSave = async () => {
-    if (!form._id) return;
-    setUpdating(true);
-    try {
-      const payload = {
-        slotId: form.slotId?._id || form.slotId,
-        date: form.date,
-        // you can also allow updating status
-        status: form.status || appointment.status,
-      };
-      await axiosInstance.put(`/bookings/status/${form._id}`, payload);
-      onUpdated({ ...form, ...payload });
-      onClose();
-    } catch (err) {
-      console.error('Update failed:', err);
-      alert('Failed to update the appointment. Please try again.');
-    } finally {
-      setUpdating(false);
-    }
-  };
+ const handleSave = async () => {
+  if (!form._id) return;
+  setUpdating(true);
+
+  try {
+    const payload = {
+      slotId: form.slotId?._id || form.slotId,
+      date: form.date,
+      // We do NOT send status here since reschedule does not update status
+    };
+
+    // Make sure to replace ':bookingId' with actual booking ID in the URL
+    await axiosInstance.put(`/bookings/reschedule/${form._id}`, payload);
+
+    // Pass updated booking data back
+    onUpdated({ ...form, ...payload });
+    onClose();
+
+    // Refresh the page
+    window.location.reload();
+  } catch (err) {
+    console.error('Update failed:', err);
+    alert('Failed to update the appointment. Please try again.');
+  } finally {
+    setUpdating(false);
+  }
+};
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>

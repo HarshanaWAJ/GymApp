@@ -14,6 +14,9 @@ router.get('/trainer/:trainerId', bookingController.getTrainerBookings);
 // Update booking status
 router.put('/status/:bookingId', bookingController.updateBookingStatus);
 
+// Reschedule booking
+router.put('/reschedule/:bookingId', bookingController.rescheduleBooking);
+
 // DELETE booking by ID
 router.delete('/:bookingId', bookingController.deleteBooking);
 

@@ -134,3 +134,36 @@ exports.deleteBooking = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+
+// Update booking details (without affecting status)
+exports.rescheduleBooking = async (req, res) => {
+  const { bookingId } = req.params;
+  const { date, slotId } = req.body;
+
+  try {
+    if (!date && !slotId) {
+      return res.status(400).json({ message: 'Provide new date or slotId to reschedule' });
+    }
+
+    const update = {};
+    if (date) update.date = date;
+    if (slotId) update.slotId = slotId;
+
+    const booking = await Booking.findByIdAndUpdate(
+      bookingId,
+      update,
+      { new: true }
+    ).populate('trainerId').populate('slotId');
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    res.json({ message: 'Booking rescheduled successfully', booking });
+
+  } catch (err) {
+    console.error('Error rescheduling booking:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
