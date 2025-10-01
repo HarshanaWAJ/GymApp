@@ -14,7 +14,6 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
-  Grid,
 } from '@mui/material';
 import StoreAdminSidebar from '../components/StoreAdminSidebar';
 import axiosInstance from '../api/axiosInstance';
@@ -29,22 +28,18 @@ function TimeSlotManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Form state
   const [openForm, setOpenForm] = useState(false);
-  const [formMode, setFormMode] = useState('add'); // 'add' or 'edit'
+  const [formMode, setFormMode] = useState('add');
   const [formData, setFormData] = useState({ day: '', startTime: '', endTime: '' });
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [editingSlotId, setEditingSlotId] = useState(null);
 
-  // Delete confirmation dialog
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [slotToDelete, setSlotToDelete] = useState(null);
 
-  // Snackbar for feedback messages
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  // Fetch time slots for the trainer
   const fetchTimeSlots = async () => {
     setLoading(true);
     setError(null);
@@ -63,16 +58,32 @@ function TimeSlotManagement() {
     }
   }, [trainerId]);
 
-  // Validate form fields
   const validate = () => {
     let errors = {};
-    if (!formData.day) errors.day = 'Day is required';
-    if (!formData.startTime) errors.startTime = 'Start time is required';
-    if (!formData.endTime) errors.endTime = 'End time is required';
+    const { day, startTime, endTime } = formData;
 
-    // Optional: Check if endTime is after startTime
-    if (formData.startTime && formData.endTime && formData.startTime >= formData.endTime) {
+    if (!day) errors.day = 'Day is required';
+    if (!startTime) errors.startTime = 'Start time is required';
+    if (!endTime) errors.endTime = 'End time is required';
+
+    if (startTime && endTime && startTime >= endTime) {
       errors.endTime = 'End time must be after start time';
+    }
+
+    // Conflict detection logic
+    if (day && startTime && endTime) {
+      const slotsForSameDay = timeSlots.filter(
+        (slot) => slot.day === day && slot._id !== editingSlotId
+      );
+
+      const hasConflict = slotsForSameDay.some((slot) => {
+        return startTime < slot.endTime && endTime > slot.startTime;
+      });
+
+      if (hasConflict) {
+        errors.startTime = 'Time slot conflicts with an existing one';
+        errors.endTime = 'Time slot conflicts with an existing one';
+      }
     }
 
     setFormErrors(errors);
@@ -85,7 +96,6 @@ function TimeSlotManagement() {
       ...prev,
       [name]: value,
     }));
-    // Clear specific field error on change
     setFormErrors((prev) => ({
       ...prev,
       [name]: null,
@@ -133,7 +143,6 @@ function TimeSlotManagement() {
     }
   };
 
-  // Delete handlers
   const confirmDelete = (slot) => {
     setSlotToDelete(slot);
     setOpenDeleteDialog(true);

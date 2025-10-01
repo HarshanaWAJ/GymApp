@@ -687,7 +687,13 @@ function EditAppointmentDialog({ open, onClose, appointment, onUpdated }) {
 
   useEffect(() => {
     if (appointment) {
+      if (appointment.status !== 'pending') {
+      alert('Only pending appointments can be edited.');
+      onClose(); // Close the dialog
+      return;
+    }
       setForm(appointment);
+      console.log('Editing appointment:', appointment);
       // Fetch slots
       if (appointment.trainerId?._id) {
         fetchSlots(appointment.trainerId._id);
