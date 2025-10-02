@@ -323,13 +323,15 @@ function TrainerCard({ trainer, slots, onBook, onContact, onManageRating, index 
                         {daySlots.map((slot) => {
                           const isBooked = slot.status === 'booked';
                           const isCanceled = slot.status === 'canceled';
-                          const isAvailable = !isBooked || isCanceled;
+                          const isAvailable = (!isBooked || isCanceled) && trainer.available;
 
                           return (
                             <Grid item key={slot._id}>
                               <Tooltip 
                                 title={
-                                  isAvailable 
+                                  !trainer.available
+                                    ? `Trainer is currently unavailable`
+                                    : isAvailable 
                                     ? `Click to book: ${slot.startTime} - ${slot.endTime}`
                                     : `This slot is already booked`
                                 }

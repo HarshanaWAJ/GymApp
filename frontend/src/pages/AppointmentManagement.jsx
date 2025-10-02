@@ -351,6 +351,22 @@ function AppointmentManagement() {
     doc.save('Appointment_Report.pdf');
   };
 
+  // Allowed status transitions according to your rules
+  const getAllowedStatusOptions = (currentStatus) => {
+    switch (currentStatus) {
+      case 'pending':
+        return ['pending', 'confirmed', 'cancelled', 'completed'];
+      case 'confirmed':
+        return ['confirmed', 'completed'];
+      case 'cancelled':
+        return ['cancelled']; // no change allowed
+      case 'completed':
+        return ['completed']; // no change allowed
+      default:
+        return ['pending', 'confirmed', 'cancelled', 'completed'];
+    }
+  };
+
   return (
     <Box sx={{ display: 'flex' }}>
       <StoreAdminSidebar />
@@ -436,65 +452,63 @@ function AppointmentManagement() {
             </ResponsiveContainer>
           </Box>
 
-          <Box
-            sx={{
-              flex: '0 0 300px',
-              height: 300,
-              p: 2,
-              borderRadius: 2,
-              backgroundColor: '#fff',
-              boxShadow: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
+          <Box sx={{ flex: '0 0 320px', height: 300, p: 2, borderRadius: 2, backgroundColor: '#fff', boxShadow: 1 }}>
             <Typography variant="h6" gutterBottom sx={{ textAlign: 'center', fontWeight: 'bold' }}>
-              Current Month Status Distribution
+              Current Month Status Breakdown
             </Typography>
-            <ResponsiveContainer width="100%" height="85%">
+            <ResponsiveContainer width="100%" height="90%">
               <PieChart>
                 <Pie
-                  data={Object.entries(currentMonthStatus).map(([status, value]) => ({
-                    name: status.charAt(0).toUpperCase() + status.slice(1),
-                    value,
+                  data={Object.entries(currentMonthStatus).map(([status, count]) => ({
+                    name: status,
+                    value: count,
                   }))}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={80}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={90}
+                  label={({ name, percent }) =>
+                    `${name.charAt(0).toUpperCase() + name.slice(1)}: ${(percent * 100).toFixed(0)}%`
+                  }
+                  labelLine={false}
                 >
-                  {Object.keys(currentMonthStatus).map((status, idx) => (
-                    <Cell key={idx} fill={PIE_COLORS[status]} />
+                  {Object.entries(currentMonthStatus).map(([status]) => (
+                    <Cell key={status} fill={PIE_COLORS[status]} />
                   ))}
                 </Pie>
-                <PieTooltip />
+                <PieTooltip
+                  formatter={(value, name) => [
+                    value,
+                    name.charAt(0).toUpperCase() + name.slice(1),
+                  ]}
+                />
                 <PieLegend verticalAlign="bottom" height={36} />
               </PieChart>
             </ResponsiveContainer>
           </Box>
         </Box>
 
-        <TextField
-          label="Search by Client Name"
-          variant="outlined"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          size="small"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ mb: 2, maxWidth: 300 }}
-        />
+        <Box sx={{ mb: 2, maxWidth: 400 }}>
+          <TextField
+            fullWidth
+            size="small"
+            variant="outlined"
+            placeholder="Search by client name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
 
-        <TableContainer component={Paper} sx={{ maxHeight: 500 }}>
-          <Table stickyHeader size="small">
+        <TableContainer component={Paper} sx={{ mb: 6 }}>
+          <Table stickyHeader>
             <TableHead>
               <TableRow>
                 <TableCell>Trainer</TableCell>
@@ -503,71 +517,73 @@ function AppointmentManagement() {
                 <TableCell>Contact</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Booking Date</TableCell>
-                <TableCell align="center">Actions</TableCell>
+                <TableCell align="center" sx={{ minWidth: 120 }}>
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    Loading...
-                  </TableCell>
-                </TableRow>
-              ) : error ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ color: 'red' }}>
-                    {error}
-                  </TableCell>
-                </TableRow>
-              ) : filteredBookings.length === 0 ? (
+              {filteredBookings.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
                     No bookings found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredBookings.map((booking) => (
-                  <TableRow key={booking._id} hover>
-                    <TableCell>{booking.trainerId?.name || 'N/A'}</TableCell>
-                    <TableCell>
-                      {booking.slotId
-                        ? `${booking.slotId.day} ${booking.slotId.startTime} - ${booking.slotId.endTime}`
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell>{booking.clientName}</TableCell>
-                    <TableCell>
-                      {booking.clientContact?.phone || 'N/A'}
-                      <br />
-                      {booking.clientContact?.email || 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={booking.status}
-                        onChange={(e) => handleStatusChange(booking._id, e.target.value)}
-                        size="small"
-                        sx={{ minWidth: 110, textTransform: 'capitalize' }}
-                      >
-                        {['pending', 'confirmed', 'cancelled', 'completed'].map((status) => (
-                          <MenuItem key={status} value={status}>
-                            {status.charAt(0).toUpperCase() + status.slice(1)}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      {booking.createdAt
-                        ? new Date(booking.createdAt).toLocaleDateString()
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title="Delete Booking">
-                        <IconButton onClick={() => handleOpenDelete(booking)} color="error" size="small">
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
+                filteredBookings.map((booking) => {
+                  const dayTime = booking.slotId
+                    ? `${booking.slotId.day} ${booking.slotId.startTime} - ${booking.slotId.endTime}`
+                    : 'N/A';
+
+                  const bookingDate = booking.createdAt
+                    ? new Date(booking.createdAt).toLocaleDateString()
+                    : 'N/A';
+
+                  const allowedStatusOptions = getAllowedStatusOptions(booking.status);
+
+                  return (
+                    <TableRow key={booking._id} hover>
+                      <TableCell>{booking.trainerId?.name || 'N/A'}</TableCell>
+                      <TableCell>{dayTime}</TableCell>
+                      <TableCell>{booking.clientName}</TableCell>
+                      <TableCell>
+                        {booking.clientContact?.phone}
+                        <br />
+                        {booking.clientContact?.email}
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={booking.status}
+                          size="small"
+                          onChange={(e) => {
+                            const newStatus = e.target.value;
+                            if (newStatus !== booking.status) {
+                              handleStatusChange(booking._id, newStatus);
+                            }
+                          }}
+                          disabled={allowedStatusOptions.length === 1}
+                        >
+                          {allowedStatusOptions.map((statusOption) => (
+                            <MenuItem key={statusOption} value={statusOption}>
+                              {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </TableCell>
+                      <TableCell>{bookingDate}</TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Delete Booking">
+                          <IconButton
+                            color="error"
+                            onClick={() => handleOpenDelete(booking)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -581,7 +597,7 @@ function AppointmentManagement() {
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDelete}>Cancel</Button>
-            <Button onClick={handleDeleteBooking} color="error" variant="contained">
+            <Button color="error" onClick={handleDeleteBooking}>
               Delete
             </Button>
           </DialogActions>
@@ -589,12 +605,12 @@ function AppointmentManagement() {
 
         <Snackbar
           open={snackbar.open}
-          autoHideDuration={3000}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          autoHideDuration={4000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
           <Alert
-            onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
             severity={snackbar.severity}
             sx={{ width: '100%' }}
           >
