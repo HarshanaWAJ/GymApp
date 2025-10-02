@@ -26,7 +26,6 @@ import {
   Add as AddIcon,
   Remove as RemoveIcon,
   ShoppingCart as CartIcon,
-  Shipping as ShippingIcon,
   Security as SecurityIcon,
   AttachMoney as MoneyIcon,
   ShoppingBag as BagIcon,
@@ -117,7 +116,7 @@ function CartModal({ open, handleClose, products }) {
             productId: item.product,
             name: product.name,
             price: product.price,
-            quantity: product.quantity,
+            stock: product.quantity, // Use "stock" to clarify it is max available quantity
             image: product.image,
             category: product.category,
           };
@@ -141,25 +140,35 @@ function CartModal({ open, handleClose, products }) {
     saveCart(newItems);
   };
 
+  // --- Fixed handlers for quantity adjustments ---
   const handleQtyChange = (productId, value) => {
-    const parsed = parseInt(value, 10);
-    if (isNaN(parsed) || parsed < 1) return;
+    let parsed = parseInt(value, 10);
+    if (isNaN(parsed) || parsed < 1) parsed = 1;
+
     const item = cartItems.find((i) => i.productId === productId);
     if (!item) return;
+
+    if (parsed > item.stock) {
+      parsed = item.stock;
+    }
+
     setQuantities((prev) => ({
       ...prev,
-      [productId]: Math.min(parsed, item.quantity),
+      [productId]: parsed,
     }));
   };
 
   const incrementQty = (productId) => {
     const item = cartItems.find((i) => i.productId === productId);
     if (!item) return;
+
     setQuantities((prev) => {
       const current = prev[productId] || 1;
+      if (current >= item.stock) return prev; // Prevent incrementing past stock
+
       return {
         ...prev,
-        [productId]: Math.min(current + 1, item.quantity),
+        [productId]: current + 1,
       };
     });
   };
@@ -167,12 +176,15 @@ function CartModal({ open, handleClose, products }) {
   const decrementQty = (productId) => {
     setQuantities((prev) => {
       const current = prev[productId] || 1;
+      if (current <= 1) return prev; // Prevent going below 1
+
       return {
         ...prev,
-        [productId]: Math.max(current - 1, 1),
+        [productId]: current - 1,
       };
     });
   };
+  // ---------------------------------------------
 
   const handleRemoveItem = (productId) => {
     const updated = cartItems.filter((item) => item.productId !== productId);
@@ -197,6 +209,7 @@ function CartModal({ open, handleClose, products }) {
       const userId = getUserId();
       if (!userId) {
         setError("Please log in to continue checkout");
+        setLoading(false);
         return;
       }
 
@@ -267,6 +280,7 @@ function CartModal({ open, handleClose, products }) {
                 <IconButton
                   onClick={() => decrementQty(item.productId)}
                   disabled={qty <= 1}
+                  aria-label={`Decrease quantity of ${item.name}`}
                 >
                   <RemoveIcon />
                 </IconButton>
@@ -276,23 +290,30 @@ function CartModal({ open, handleClose, products }) {
                   onChange={(e) =>
                     handleQtyChange(item.productId, e.target.value)
                   }
-                  inputProps={{ min: 1, max: item.quantity }}
+                  inputProps={{
+                    min: 1,
+                    max: item.stock,
+                    type: "number",
+                    "aria-label": `Quantity of ${item.name}`,
+                  }}
                   sx={{ width: 60 }}
                 />
                 <IconButton
                   onClick={() => incrementQty(item.productId)}
-                  disabled={qty >= item.quantity}
+                  disabled={qty >= item.stock}
+                  aria-label={`Increase quantity of ${item.name}`}
                 >
                   <AddIcon />
                 </IconButton>
 
                 <Typography variant="subtitle1" sx={{ ml: 2 }}>
-                  ${Number(item.price * qty).toFixed(2)}
+                  ${(item.price * qty).toFixed(2)}
                 </Typography>
                 <Tooltip title="Remove item">
                   <IconButton
                     onClick={() => handleRemoveItem(item.productId)}
                     color="error"
+                    aria-label={`Remove ${item.name} from cart`}
                   >
                     <DeleteIcon />
                   </IconButton>
@@ -336,7 +357,7 @@ function CartModal({ open, handleClose, products }) {
             free shipping!
           </Alert>
         )}
-        <Stack direction="row" spacing={1} mt={2}>
+        <Stack direction="row" spacing={1} mt={2} alignItems="center">
           <SecurityIcon color="success" fontSize="small" />
           <Typography variant="caption" color="text.secondary">
             Secure checkout
@@ -361,7 +382,7 @@ function CartModal({ open, handleClose, products }) {
               <CartIcon />
               <Typography variant="h6">Shopping Cart</Typography>
             </Stack>
-            <IconButton onClick={handleClose}>
+            <IconButton onClick={handleClose} aria-label="Close cart modal">
               <CloseIcon />
             </IconButton>
           </Stack>
